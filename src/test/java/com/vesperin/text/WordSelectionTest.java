@@ -3,6 +3,7 @@ package com.vesperin.text;
 import com.google.common.collect.Sets;
 import com.vesperin.base.Source;
 import com.vesperin.text.Selection.Word;
+import com.vesperin.text.spelling.StopWords;
 import org.junit.Test;
 
 import java.util.List;
@@ -26,10 +27,10 @@ public class WordSelectionTest {
       Codebase.quickSort("QuickSort5")
     );
 
-    final List<Word> words = extractor.from(code);
+    final List<Word> words = extractor.from(code, StopWords.all());
     assertThat(words.isEmpty(), is(false));
 
-    final List<Word> relevant = extractor.frequentWords(words.size(), code);
+    final List<Word> relevant = extractor.frequentWords(words.size(), code, StopWords.all());
 
     for(Word each : relevant){
       System.out.println(each.container() + "#" + each.element());
@@ -47,7 +48,7 @@ public class WordSelectionTest {
       Codebase.quickSort("QuickSort5")
     );
 
-    final List<Word> words = extractor.from(code);
+    final List<Word> words = extractor.from(code, StopWords.all());
     assertThat(words.isEmpty(), is(false));
   }
 
@@ -62,7 +63,7 @@ public class WordSelectionTest {
       Codebase.randomCode("Query3")
     );
 
-    final List<Word> words = extractor.frequentWords(2, code);
+    final List<Word> words = extractor.frequentWords(2, code, StopWords.all());
     assertThat(words.isEmpty(), is(false));
   }
 
@@ -77,7 +78,7 @@ public class WordSelectionTest {
       Codebase.randomCode("Query3")
     );
 
-    final List<Word> words = extractor.weightedWords(5, code);
+    final List<Word> words = extractor.weightedWords(5, code, StopWords.all());
     assertThat(words.isEmpty(), is(false));
 
     final Index index = Index.createIndex(words);

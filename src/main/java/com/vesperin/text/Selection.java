@@ -1,6 +1,7 @@
 package com.vesperin.text;
 
 import Jama.Matrix;
+import com.google.common.collect.Sets;
 import com.google.common.primitives.Doubles;
 import com.vesperin.base.Context;
 import com.vesperin.base.EclipseJavaParser;
@@ -48,11 +49,26 @@ public interface Selection {
    *
    * @param k limit the list to this number (capped to 10)
    * @param code corpus
+   * @param stopWords an array of stop words
    * @return a new list of relevant words
    */
-  static List<Word> selects(int k, Set<Source> code){
+  static List<Word> selects(int k, Set<Source> code, StopWords... stopWords){
+    final Set<StopWords> sw = (Objects.isNull(stopWords) || stopWords.length == 0)
+      ? StopWords.all() : Sets.newHashSet(Arrays.asList(stopWords));
+
+    return selects(k, code, sw);
+  }
+
+  /**
+   * Selects the most relevant words in a corpus of source files.
+   *
+   * @param k limit the list to this number (capped to 10)
+   * @param code corpus
+   * @return a new list of relevant words
+   */
+  static List<Word> selects(int k, Set<Source> code, Set<StopWords> stopWords){
     final int topK = Math.min(Math.max(0, k), 10);
-    return new SelectionImpl().weightedWords(topK, code);
+    return new SelectionImpl().weightedWords(topK, code, stopWords);
   }
 
 
@@ -72,13 +88,13 @@ public interface Selection {
    * @param code Java source file containing source code.
    * @return a new list of words. Duplicate words are allowed.
    */
-  default List<Word> from(Source code) {
+  default List<Word> from(Source code, Set<StopWords> stopWords) {
     final Context       context = newContext(code);
     final UnitLocation  scope   = buildScope(context);
 
     if(scope == null) return Collections.emptyList();
 
-    return from(scope);
+    return from(scope, stopWords);
   }
 
   /**
@@ -87,14 +103,14 @@ public interface Selection {
    * @param scope Block of source code.
    * @return a new list of words. Duplicate words are allowed.
    */
-  default List<Word> from(UnitLocation scope){
+  default List<Word> from(UnitLocation scope, Set<StopWords> stopWords){
     final Optional<UnitLocation> optional = Optional.ofNullable(scope);
 
     if(!optional.isPresent()) return Collections.emptyList();
 
     final UnitLocation  nonNull = optional.get();
     final ASTNode       node    = nonNull.getUnitNode();
-    final WordCollector visitor = new WordCollector();
+    final WordCollector visitor = new WordCollector(stopWords);
 
     node.accept(visitor);
 
@@ -107,8 +123,8 @@ public interface Selection {
    * @param code set of src file
    * @return the top k list of words.
    */
-  default List<Word> flattenWordList(Set<Source> code){
-    return frequentWords(Integer.MAX_VALUE, code);
+  default List<Word> flattenWordList(Set<Source> code, Set<StopWords> stopWords){
+    return frequentWords(Integer.MAX_VALUE, code, stopWords);
   }
 
   /**
@@ -118,8 +134,8 @@ public interface Selection {
    * @param code set of src file
    * @return the top k list of words.
    */
-  default List<Word> frequentWords(int k, Set<Source> code){
-    return from(from(code), new WordByFrequency(k));
+  default List<Word> frequentWords(int k, Set<Source> code, Set<StopWords> stopWords){
+    return from(from(code, stopWords), new WordByFrequency(k));
   }
 
   /**
@@ -130,8 +146,8 @@ public interface Selection {
    * @param code the corpus.
    * @return a list of most representative words.
    */
-  default List<Word> weightedWords(int k, Set<Source> code){
-    final List<Word> words = from(flattenWordList(code), new WordByCompositeWeight());
+  default List<Word> weightedWords(int k, Set<Source> code, Set<StopWords> stopWords){
+    final List<Word> words = from(flattenWordList(code, stopWords), new WordByCompositeWeight());
     if(words.isEmpty()) return words;
     final int topK = Math.min(Math.max(0, k), words.size());
     return words.stream().limit(topK).collect(Collectors.toList());
@@ -157,11 +173,11 @@ public interface Selection {
    * @param code Java source file containing source code.
    * @return a new list of words. Duplicate words are allowed.
    */
-  default List<Word> from(Set<Source> code) {
+  default List<Word> from(Set<Source> code, final Set<StopWords> stopWords) {
     final List<Word> result = new CopyOnWriteArrayList<>();
 
     final Collection<Callable<List<Word>>> tasks = new ArrayList<>();
-    code.forEach(c -> tasks.add(() -> from(c)));
+    code.forEach(c -> tasks.add(() -> from(c, stopWords)));
 
     final ExecutorService service = scaleExecutor(code.size());
 
@@ -393,15 +409,20 @@ public interface Selection {
 
   class WordCollector extends SkeletalVisitor implements Iterable <Word> {
 
-    static final Set<StopWords> SW = StopWords.all();
     static final Noun NOUN = Noun.newNoun();
 
-    final List<Word>    items;
-    final Set<String>   visited;
+    final List<Word>      items;
+    final Set<String>     visited;
+    final Set<StopWords>  stopWords;
 
     WordCollector(){
-      this.items    = new ArrayList<>();
-      this.visited  = new HashSet<>();
+      this(StopWords.all());
+    }
+
+    WordCollector(Set<StopWords> stopWords){
+      this.stopWords  = stopWords;
+      this.items      = new ArrayList<>();
+      this.visited    = new HashSet<>();
     }
 
     List<Word> wordList(){
@@ -441,7 +462,7 @@ public interface Selection {
         for(String eachLabel : split){
 
           if(" ".equals(eachLabel) || eachLabel.isEmpty()
-            || StopWords.isStopWord(SW, eachLabel, NOUN.pluralOf(eachLabel)))
+            || StopWords.isStopWord(stopWords, eachLabel, NOUN.pluralOf(eachLabel)))
             continue;
 
           String currentLabel = eachLabel.toLowerCase(Locale.ENGLISH);

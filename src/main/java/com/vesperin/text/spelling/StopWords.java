@@ -1,12 +1,12 @@
 package com.vesperin.text.spelling;
 
-import com.google.common.collect.Sets;
 import com.google.common.io.CharStreams;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -18,7 +18,7 @@ import java.util.Set;
  * @author Huascar Sanchez
  */
 public enum StopWords {
-  ENGLISH(), JAVA();
+  ENGLISH(), JAVA(), GENERAL(), CUSTOM();
 
 
   private static final String CUSTOM_WORD = "custom";
@@ -56,11 +56,26 @@ public enum StopWords {
   }
 
   /**
+   * Adds a list of words to the stop-words object.
+   *
+   * @param words list of words to add
+   */
+  public void addAll(List<String> words){
+    final Set<String> uniqueWords = new HashSet<>();
+    uniqueWords.addAll(words);
+
+    for(String each : uniqueWords){
+      if(Objects.isNull(each) || each.isEmpty()) continue;
+      add(each);
+    }
+  }
+
+  /**
    * @return a set of all currently available
    *  StopWords
    */
   public static Set<StopWords> all(){
-    return Sets.newHashSet(ENGLISH, JAVA);
+    return EnumSet.of(StopWords.ENGLISH, StopWords.JAVA, GENERAL);
   }
 
   /**

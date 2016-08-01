@@ -3,6 +3,7 @@ package com.vesperin.text;
 import com.google.common.collect.Sets;
 import com.vesperin.base.Source;
 import com.vesperin.text.Selection.Word;
+import com.vesperin.text.spelling.StopWords;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -30,7 +31,7 @@ public class GroupingTest {
       Codebase.randomCode("Query3")
     );
 
-    words = extractor.weightedWords(100, code);
+    words = extractor.weightedWords(100, code, StopWords.all());
   }
 
   @Test public void testGrouping() throws Exception {
