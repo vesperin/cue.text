@@ -1,6 +1,5 @@
 package com.vesperin.text.spelling;
 
-import com.google.common.collect.Sets;
 import com.vesperin.text.utils.Similarity;
 
 import java.io.IOException;
@@ -20,6 +19,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static com.google.common.primitives.Floats.compare;
+import static com.vesperin.text.spelling.Corrector.isAlphanumeric;
 import static com.vesperin.text.spelling.Corrector.isNumber;
 
 /**
@@ -57,7 +57,7 @@ public enum WordCorrector implements Corrector {
     return WordCorrector.getInstance().correct(word);
   }
 
-  public static boolean onlyConsonants(String word){
+  public static boolean onlyConsonantsOrVowels(String word){
     return Corrector.onlyConsonants(word);
   }
 
@@ -65,14 +65,10 @@ public enum WordCorrector implements Corrector {
     return Similarity.similarityScore(word, suggestion);
   }
 
-  public static boolean isStopWord(Set<StopWords> stops, String word){
-    return Corrector.isStopWord(stops, word);
-  }
-
   @Override public String correct(String word, float accuracy) {
 
     if(contains(word)) { return word; } else {
-      if(onlyConsonants(word)) {
+      if(onlyConsonantsOrVowels(word)) {
 
         // Make some edits
         final Optional<String> e1 = max(captureThoseInDictionary(mutate(word)));
@@ -179,8 +175,6 @@ public enum WordCorrector implements Corrector {
     Objects.requireNonNull(dict);
     Objects.requireNonNull(dictionaryFile);
 
-    final Set<StopWords> stops = Sets.newHashSet(StopWords.ENGLISH, StopWords.JAVA);
-
     final List<String> lines = Files.readAllLines(dictionaryFile);
 
     Pattern p = Pattern.compile("\\w+");
@@ -192,10 +186,10 @@ public enum WordCorrector implements Corrector {
         final String[] words = m.group().split(CAMEL_CASE);
 
         for(String each : words){
-          if(each.length() <= 2)      continue;
-          if(onlyConsonants(each))    continue;
-          if(isNumber(each))          continue;
-          if(isStopWord(stops, each)) continue;
+          if(each.length() <= 2)            continue;
+          if(onlyConsonantsOrVowels(each))  continue;
+          if(isNumber(each))                continue;
+          if(isAlphanumeric(each))          continue;
 
           final String lowerCase = each.toLowerCase();
           dict.put(

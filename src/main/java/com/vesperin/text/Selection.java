@@ -12,6 +12,7 @@ import com.vesperin.base.utils.Jdt;
 import com.vesperin.base.visitors.SkeletalVisitor;
 import com.vesperin.text.nouns.Noun;
 import com.vesperin.text.spelling.StopWords;
+import com.vesperin.text.spelling.WordCorrector;
 import com.vesperin.text.utils.Jamas;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
@@ -31,7 +32,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static com.vesperin.text.spelling.WordCorrector.containsWord;
-import static com.vesperin.text.spelling.WordCorrector.onlyConsonants;
 import static com.vesperin.text.spelling.WordCorrector.similarity;
 import static com.vesperin.text.spelling.WordCorrector.suggestCorrection;
 import static java.util.stream.Collectors.toList;
@@ -424,7 +424,7 @@ public interface Selection {
       if(visited.contains(identifier)) return false;
       final String  pattern         = Pattern.quote("_");
       final boolean underscored     = identifier.split(pattern).length == 1;
-      final boolean onlyConsonants  = onlyConsonants(identifier);
+      final boolean onlyConsonants  = WordCorrector.onlyConsonantsOrVowels(identifier);
       final boolean tooSmall        = identifier.length() < 4;
 
 
@@ -445,7 +445,7 @@ public interface Selection {
 
           String currentLabel = eachLabel.toLowerCase(Locale.ENGLISH);
 
-          if(onlyConsonants(currentLabel) || !containsWord(currentLabel)){
+          if(WordCorrector.onlyConsonantsOrVowels(currentLabel) || !containsWord(currentLabel)){
             final String newLabel = suggestCorrection(currentLabel).toLowerCase();
 
             if(similarity(currentLabel, newLabel) > 0.3f){

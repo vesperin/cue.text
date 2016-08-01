@@ -1,7 +1,6 @@
 package com.vesperin.text.spelling;
 
 import java.util.Locale;
-import java.util.Set;
 
 /**
  * @author Huascar Sanchez
@@ -31,7 +30,7 @@ interface Corrector {
   static boolean onlyConsonants(String word) {
     // thx to http://stackoverflow.com/q/26536829/26536928
     return !(word == null || word.isEmpty())
-      && word.toLowerCase(Locale.ENGLISH).matches("[^aeiou]+$");
+      && word.toLowerCase(Locale.ENGLISH).matches("^[aeiuoAEIOU]*$|^(?!.*(NG|ng)).[^aeyiuo]*$");
   }
 
   static boolean isNumber(String input) {
@@ -39,7 +38,7 @@ interface Corrector {
     return !(input == null || input.isEmpty()) && input.matches("\\d+");
   }
 
-  static boolean isStopWord(Set<StopWords> stops, String word){
-    return StopWords.isStopWord(stops, word);
+  static boolean isAlphanumeric(String input){
+    return !(input == null || input.isEmpty()) && input.toLowerCase(Locale.ENGLISH).matches("^(?=.*[a-z])(?=.*[0-9])[a-z0-9]+$");
   }
 }
