@@ -132,6 +132,7 @@ public interface Selection {
    */
   default List<Word> weightedWords(int k, Set<Source> code){
     final List<Word> words = from(flattenWordList(code), new WordByCompositeWeight());
+    if(words.isEmpty()) return words;
     final int topK = Math.min(Math.max(0, k), words.size());
     return words.stream().limit(topK).collect(Collectors.toList());
   }
