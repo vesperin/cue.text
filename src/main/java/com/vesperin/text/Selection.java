@@ -48,6 +48,28 @@ public interface Selection {
   /**
    * Selects the most relevant words in a corpus of source files.
    *
+   * @param code corpus
+   * @param stopWords an array of stop words
+   * @return a new list of relevant words
+   */
+  static List<Word> selects(Set<Source> code, StopWords... stopWords){
+    return selects(code, ImmutableSet.of(), stopWords);
+  }
+
+  /**
+   * Selects the most relevant words in a corpus of source files.
+   *
+   * @param code corpus
+   * @param stopWords an array of stop words
+   * @return a new list of relevant words
+   */
+  static List<Word> selects(Set<Source> code, Set<String> whiteSet, StopWords... stopWords){
+    return selects(Integer.MAX_VALUE, code, whiteSet, stopWords);
+  }
+
+  /**
+   * Selects the most relevant words in a corpus of source files.
+   *
    * @param k limit the list to this number (capped to 10)
    * @param code corpus
    * @param stopWords an array of stop words

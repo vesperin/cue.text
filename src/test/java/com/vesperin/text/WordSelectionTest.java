@@ -40,7 +40,6 @@ public class WordSelectionTest {
   }
 
   @Test public void testNParallelExtractions() throws Exception {
-    final WordDistilling extractor = new WordDistilling();
     final Set<Source> code = Sets.newHashSet(
       Codebase.quickSort("QuickSort1"),
       Codebase.quickSort("QuickSort2"),
@@ -49,7 +48,7 @@ public class WordSelectionTest {
       Codebase.quickSort("QuickSort5")
     );
 
-    final List<Word> words = extractor.from(code, Collections.emptySet(), StopWords.all());
+    final List<Word> words = Selection.selects(code);
     assertThat(words.isEmpty(), is(false));
   }
 
