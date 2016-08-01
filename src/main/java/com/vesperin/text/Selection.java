@@ -646,6 +646,7 @@ public interface Selection {
     }
 
     @Override public List<Word> apply(List<Word> words) {
+      if(words.isEmpty()) return words;
 
       index.index(words);
       index.createWordDocMatrix();
