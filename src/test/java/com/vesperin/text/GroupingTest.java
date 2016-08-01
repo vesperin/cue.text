@@ -8,6 +8,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -31,7 +32,7 @@ public class GroupingTest {
       Codebase.randomCode("Query3")
     );
 
-    words = extractor.weightedWords(100, code, StopWords.all());
+    words = extractor.weightedWords(100, code, Collections.emptySet(), StopWords.all());
   }
 
   @Test public void testGrouping() throws Exception {

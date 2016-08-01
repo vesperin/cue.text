@@ -1,6 +1,7 @@
 package com.vesperin.text;
 
 import Jama.Matrix;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Doubles;
 import com.vesperin.base.Context;
@@ -53,10 +54,22 @@ public interface Selection {
    * @return a new list of relevant words
    */
   static List<Word> selects(int k, Set<Source> code, StopWords... stopWords){
+    return selects(k, code, ImmutableSet.of(), stopWords);
+  }
+
+  /**
+   * Selects the most relevant words in a corpus of source files.
+   *
+   * @param k limit the list to this number (capped to 10)
+   * @param code corpus
+   * @param stopWords an array of stop words
+   * @return a new list of relevant words
+   */
+  static List<Word> selects(int k, Set<Source> code, Set<String> whiteSet, StopWords... stopWords){
     final Set<StopWords> sw = (Objects.isNull(stopWords) || stopWords.length == 0)
       ? StopWords.all() : Sets.newHashSet(Arrays.asList(stopWords));
 
-    return selects(k, code, sw);
+    return selects(k, code, whiteSet, sw);
   }
 
   /**
@@ -66,9 +79,9 @@ public interface Selection {
    * @param code corpus
    * @return a new list of relevant words
    */
-  static List<Word> selects(int k, Set<Source> code, Set<StopWords> stopWords){
+  static List<Word> selects(int k, Set<Source> code, Set<String> whiteSet, Set<StopWords> stopWords){
     final int topK = Math.min(Math.max(0, k), 10);
-    return new SelectionImpl().weightedWords(topK, code, stopWords);
+    return new SelectionImpl().weightedWords(topK, code, whiteSet, stopWords);
   }
 
 
@@ -88,13 +101,13 @@ public interface Selection {
    * @param code Java source file containing source code.
    * @return a new list of words. Duplicate words are allowed.
    */
-  default List<Word> from(Source code, Set<StopWords> stopWords) {
+  default List<Word> from(Source code, Set<String> whiteSet, Set<StopWords> stopWords) {
     final Context       context = newContext(code);
     final UnitLocation  scope   = buildScope(context);
 
     if(scope == null) return Collections.emptyList();
 
-    return from(scope, stopWords);
+    return from(scope, whiteSet, stopWords);
   }
 
   /**
@@ -103,14 +116,14 @@ public interface Selection {
    * @param scope Block of source code.
    * @return a new list of words. Duplicate words are allowed.
    */
-  default List<Word> from(UnitLocation scope, Set<StopWords> stopWords){
+  default List<Word> from(UnitLocation scope, Set<String> whiteSet, Set<StopWords> stopWords){
     final Optional<UnitLocation> optional = Optional.ofNullable(scope);
 
     if(!optional.isPresent()) return Collections.emptyList();
 
     final UnitLocation  nonNull = optional.get();
     final ASTNode       node    = nonNull.getUnitNode();
-    final WordCollector visitor = new WordCollector(stopWords);
+    final WordCollector visitor = new WordCollector(whiteSet, stopWords);
 
     node.accept(visitor);
 
@@ -123,8 +136,8 @@ public interface Selection {
    * @param code set of src file
    * @return the top k list of words.
    */
-  default List<Word> flattenWordList(Set<Source> code, Set<StopWords> stopWords){
-    return frequentWords(Integer.MAX_VALUE, code, stopWords);
+  default List<Word> flattenWordList(Set<Source> code, Set<String> whiteSet, Set<StopWords> stopWords){
+    return frequentWords(Integer.MAX_VALUE, code, whiteSet, stopWords);
   }
 
   /**
@@ -134,8 +147,8 @@ public interface Selection {
    * @param code set of src file
    * @return the top k list of words.
    */
-  default List<Word> frequentWords(int k, Set<Source> code, Set<StopWords> stopWords){
-    return from(from(code, stopWords), new WordByFrequency(k));
+  default List<Word> frequentWords(int k, Set<Source> code, Set<String> whiteSet, Set<StopWords> stopWords){
+    return from(from(code, whiteSet, stopWords), new WordByFrequency(k));
   }
 
   /**
@@ -146,8 +159,8 @@ public interface Selection {
    * @param code the corpus.
    * @return a list of most representative words.
    */
-  default List<Word> weightedWords(int k, Set<Source> code, Set<StopWords> stopWords){
-    final List<Word> words = from(flattenWordList(code, stopWords), new WordByCompositeWeight());
+  default List<Word> weightedWords(int k, Set<Source> code, Set<String> whiteSet, Set<StopWords> stopWords){
+    final List<Word> words = from(flattenWordList(code, whiteSet, stopWords), new WordByCompositeWeight());
     if(words.isEmpty()) return words;
     final int topK = Math.min(Math.max(0, k), words.size());
     return words.stream().limit(topK).collect(Collectors.toList());
@@ -173,11 +186,11 @@ public interface Selection {
    * @param code Java source file containing source code.
    * @return a new list of words. Duplicate words are allowed.
    */
-  default List<Word> from(Set<Source> code, final Set<StopWords> stopWords) {
+  default List<Word> from(Set<Source> code, final Set<String> whiteSet, final Set<StopWords> stopWords) {
     final List<Word> result = new CopyOnWriteArrayList<>();
 
     final Collection<Callable<List<Word>>> tasks = new ArrayList<>();
-    code.forEach(c -> tasks.add(() -> from(c, stopWords)));
+    code.forEach(c -> tasks.add(() -> from(c, whiteSet, stopWords)));
 
     final ExecutorService service = scaleExecutor(code.size());
 
@@ -414,12 +427,13 @@ public interface Selection {
     final List<Word>      items;
     final Set<String>     visited;
     final Set<StopWords>  stopWords;
+    final Set<String>     whiteSet;
 
-    WordCollector(){
-      this(StopWords.all());
-    }
+    WordCollector(Set<String> whiteSet, Set<StopWords> stopWords){
+      this.whiteSet   = whiteSet.stream()
+        .map(s -> s.toLowerCase(Locale.ENGLISH))
+        .collect(Collectors.toSet());
 
-    WordCollector(Set<StopWords> stopWords){
       this.stopWords  = stopWords;
       this.items      = new ArrayList<>();
       this.visited    = new HashSet<>();
@@ -439,6 +453,11 @@ public interface Selection {
       );
 
       if(!method.isPresent()) return false;
+
+      String methodName = method.get().getName().getIdentifier();
+      methodName        = methodName.toLowerCase(Locale.ENGLISH);
+      if(!whiteSet.contains(methodName) && !whiteSet.isEmpty()) return false;
+
 
       final String identifier = simpleName.getIdentifier()
         .replaceAll("(-?\\d+)|(\\+1)", "");
