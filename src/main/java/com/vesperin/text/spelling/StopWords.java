@@ -75,7 +75,7 @@ public enum StopWords {
    *  StopWords
    */
   public static Set<StopWords> all(){
-    return EnumSet.of(StopWords.ENGLISH, StopWords.JAVA, GENERAL);
+    return EnumSet.of(StopWords.ENGLISH, StopWords.JAVA, StopWords.GENERAL);
   }
 
   /**
