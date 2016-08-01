@@ -59,6 +59,7 @@ assemblyExcludedJars in assembly <<= (fullClasspath in assembly) map { cp =>
     "org.eclipse.core.filesystem-1.3.100.jar",
     "org.eclipse.core.jobs-3.5.100.jar",
     "org.eclipse.core.resources-3.7.100.jar",
+    "org.eclipse.core.resources-runtime-3.7.0.jar",
     "org.eclipse.equinox.app-1.3.100.jar",
     "org.eclipse.equinox.common-3.6.0.jar",
     "org.eclipse.equinox.preferences-3.4.1.jar",
@@ -68,7 +69,6 @@ assemblyExcludedJars in assembly <<= (fullClasspath in assembly) map { cp =>
     "org.eclipse.text-3.5.101.jar",
     "airline-io-2.1.0.jar",
     "airline-2.1.0.jar",
-    "mix-0.1.jar",
     "jama-1.0.3.jar"
   )
 
