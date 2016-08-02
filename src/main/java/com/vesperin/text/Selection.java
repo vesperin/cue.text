@@ -102,7 +102,7 @@ public interface Selection {
    * @return a new list of relevant words
    */
   static List<Word> selects(int k, Set<Source> code, Set<String> whiteSet, Set<StopWords> stopWords){
-    final int topK = Math.min(Math.max(0, k), 10);
+    final int topK = Math.min(Math.max(0, k), 150);
     return new SelectionImpl().weightedWords(topK, code, whiteSet, stopWords);
   }
 
@@ -356,9 +356,15 @@ public interface Selection {
     DocumentImpl(int id, String container){
       this.id = id;
 
-      int idx = container.lastIndexOf("#");
-      this.filename = container.substring(0, idx);
-      this.method   = container.substring(idx + 1, container.length());
+      if(!Objects.isNull(container) && container.contains("#")){
+        int idx = container.lastIndexOf("#");
+        this.filename = container.substring(0, idx);
+        this.method   = container.substring(idx + 1, container.length());
+      } else {
+        this.filename = container;
+        this.method   = "";
+      }
+
     }
 
     @Override public boolean equals(Object obj) {
@@ -385,7 +391,7 @@ public interface Selection {
     }
 
     @Override public String toString() {
-      return path() + "#" + method();
+      return path() + ("".equals(method()) ? "" :("#" + method()));
     }
   }
 

@@ -47,7 +47,7 @@ public class Index {
 
   /**
    * It creates an index based on a flatten word list
-   * (Set this ({@link Selection#flattenWordList(Set)} method first).
+   * (Set this ({@link Selection#flattenWordList(Set, Set, Set)} method first).
    *
    * @param words flatten Word List.
    * @return a new Index object.
