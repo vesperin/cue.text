@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.vesperin.text.spelling.WordCorrector.containsWord;
 import static com.vesperin.text.spelling.WordCorrector.similarity;
@@ -170,7 +171,10 @@ public interface Selection {
    * @return the top k list of words.
    */
   default List<Word> frequentWords(int k, Set<Source> code, Set<String> whiteSet, Set<StopWords> stopWords){
-    return from(from(code, whiteSet, stopWords), new WordByFrequency(k));
+    final List<Word> raw = cleansing(stopWords, from(code, whiteSet, stopWords).stream())
+      .collect(Collectors.toList());
+
+    return from(raw, new WordByFrequency(k));
   }
 
   /**
@@ -186,6 +190,12 @@ public interface Selection {
     if(words.isEmpty()) return words;
     final int topK = Math.min(Math.max(0, k), words.size());
     return words.stream().limit(topK).collect(Collectors.toList());
+  }
+
+
+  static Stream<Word> cleansing(Set<StopWords> stopWords, Stream<Word> relevant){
+    return relevant
+      .filter(w -> !StopWords.isStopWord(stopWords, w.element().toLowerCase(Locale.ENGLISH)));
   }
 
 
