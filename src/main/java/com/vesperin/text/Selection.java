@@ -17,7 +17,9 @@ import com.vesperin.text.spelling.StopWords;
 import com.vesperin.text.spelling.WordCorrector;
 import com.vesperin.text.utils.Jamas;
 import org.eclipse.jdt.core.dom.ASTNode;
+import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
+import org.eclipse.jdt.core.dom.PackageDeclaration;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 
@@ -557,10 +559,30 @@ public interface Selection {
       final Optional<TypeDeclaration>   type   = Optional.ofNullable(Jdt.parent(TypeDeclaration.class, name));
       final Optional<MethodDeclaration> method = Optional.ofNullable(Jdt.parent(MethodDeclaration.class, name));
 
-      final String left  = type.isPresent() ? type.get().getName().getIdentifier() + "#" : "";
-      final String right = method.isPresent() ? method.get().getName().getIdentifier() : "";
+      String packageName = "";
+      if(type.isPresent()){
+        packageName = packageName(type.get());
+      }
+
+      final String left  = type.isPresent() ? (packageName + type.get().getName().getFullyQualifiedName()) + "#" : "";
+      final String right = method.isPresent() ? method.get().getName().getIdentifier() + (method.get().isConstructor() ? "(C)" : "") : "";
 
       return left + right;
+    }
+
+    private static String packageName(TypeDeclaration type){
+      assert !Objects.isNull(type);
+      assert !Objects.isNull(type.getRoot());
+
+      final CompilationUnit unit = Jdt.parent(CompilationUnit.class, type.getRoot());
+      final Optional<PackageDeclaration> op = Optional.ofNullable(unit.getPackage());
+
+      String packageName = "";
+      if(op.isPresent()){
+        packageName = op.get().getName().getFullyQualifiedName() + ".";
+      }
+
+      return packageName;
     }
 
     private static boolean isThrowableAlike(String identifier){

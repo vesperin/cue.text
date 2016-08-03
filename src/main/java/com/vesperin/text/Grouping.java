@@ -280,18 +280,18 @@ public interface Grouping {
     /**
      * @return the list of groups produced by {@link Grouping#groups(List)}.
      */
-    List<Group> groupList(){
+    public List<Group> groupList(){
       return groups;
     }
 
     /**
      * @return created index.
      */
-    Index index(){
+    public Index index(){
       return index;
     }
 
-    boolean isEmpty(){
+    public boolean isEmpty(){
       return groupList().isEmpty();
     }
 

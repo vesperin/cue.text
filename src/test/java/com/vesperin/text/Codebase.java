@@ -13,6 +13,7 @@ public class Codebase {
   static Source quickSort(String name){
     return createCode(
       name,
+      "package com.foo.best;",
       "import java.util.Random;",
       "",
       "public class " + name + " {",
@@ -83,6 +84,7 @@ public class Codebase {
 
   public static Source randomCode(String name){
     return createCode(name,
+      "package com.foo.best;",
       "import java.util.ArrayList;",
       "import java.util.Arrays;",
       "import java.util.Collections;",
