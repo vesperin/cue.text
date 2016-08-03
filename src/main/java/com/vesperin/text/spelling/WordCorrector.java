@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -19,8 +20,11 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static com.google.common.primitives.Floats.compare;
-import static com.vesperin.text.spelling.Corrector.isAlphanumeric;
+import static com.vesperin.text.spelling.Corrector.endsWithNumbers;
 import static com.vesperin.text.spelling.Corrector.isNumber;
+import static com.vesperin.text.spelling.Corrector.startsWithNumbers;
+import static com.vesperin.text.spelling.Corrector.trimLeft;
+import static com.vesperin.text.spelling.Corrector.trimRight;
 
 /**
  * @author Huascar Sanchez
@@ -189,14 +193,21 @@ public enum WordCorrector implements Corrector {
           if(each.length() <= 2)            continue;
           if(onlyConsonantsOrVowels(each))  continue;
           if(isNumber(each))                continue;
-          if(isAlphanumeric(each))          continue;
 
-          final String lowerCase = each.toLowerCase();
+          String updatedEach;
+          if(startsWithNumbers(each) || endsWithNumbers(each)) {
+            updatedEach = trimRight(trimLeft(each))
+              .toLowerCase(Locale.ENGLISH);
+          } else {
+            updatedEach = each.toLowerCase(Locale.ENGLISH);
+          }
+
           dict.put(
-            lowerCase,
+            updatedEach,
             // increase frequency
-            (dict.containsKey(lowerCase) ? dict.get(lowerCase) + 1 : 1)
+            (dict.containsKey(updatedEach) ? dict.get(updatedEach) + 1 : 1)
           );
+
         }
       }
     }

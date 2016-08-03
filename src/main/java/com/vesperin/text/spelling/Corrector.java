@@ -38,7 +38,32 @@ interface Corrector {
     return !(input == null || input.isEmpty()) && input.matches("\\d+");
   }
 
-  static boolean isAlphanumeric(String input){
-    return !(input == null || input.isEmpty()) && input.toLowerCase(Locale.ENGLISH).matches("^(?=.*[a-z])(?=.*[0-9])[a-z0-9]+$");
+  static boolean startsWithNumbers(String input){
+    return !(input == null || input.isEmpty()) && Character.isDigit(input.charAt(0));
+  }
+
+  static boolean endsWithNumbers(String input){
+    return !(input == null || input.isEmpty()) && Character.isDigit(input.charAt(input.length() - 1));
+  }
+
+  static String trimLeft(String input){
+    final char[] chars = input.toCharArray();
+    int to = 0; for(char each : chars){
+      if(Character.isAlphabetic(each)) { break; }
+      if(Character.isDigit(each))      { to++;  }
+    }
+
+    return input.substring(to, input.length());
+  }
+
+  static String trimRight(String input){
+    final char[] chars = input.toCharArray();
+    int to = chars.length; for(int j = chars.length - 1; j >= 0; j--){
+      final char each = chars[j];
+      if(Character.isAlphabetic(each)) { break; }
+      if(Character.isDigit(each))      { to--;  }
+    }
+
+    return input.substring(0, to);
   }
 }

@@ -99,6 +99,7 @@ public class Codebase {
       "	private Matrix tdMatrix;",
       "	private Vector<Document> documents;",
       "	private Vector<Term> terms;",
+      "	private Vector<Term> vec4f = null;",
       "	",
       "	public Query(Vector<Term> terms, Vector<Document> documents, Matrix tdMatrix) {",
       "		this.terms= terms;",
