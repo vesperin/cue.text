@@ -80,8 +80,5 @@ public class WordSelectionTest {
 
     final List<Word> words = extractor.weightedWords(5, code, Collections.emptySet(), StopWords.all());
     assertThat(words.isEmpty(), is(false));
-
-    final Index index = Index.createIndex(words);
-    index.createLsiMatrix();
   }
 }

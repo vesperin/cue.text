@@ -55,8 +55,6 @@ public class Index {
   static Index createIndex(List<Word> words){
     final Index index = new Index();
     index.index(words);
-    index.createWordDocMatrix();
-    index.createLsiMatrix();
     return index;
   }
 
@@ -105,6 +103,9 @@ public class Index {
     docCount  = indexMap.keySet().size();
     wordCount = wordsSet.size();
     wordList.addAll(wordsSet);
+
+    createWordDocMatrix();
+    createLsiMatrix();
   }
 
   void createWordDocMatrix(){
@@ -133,7 +134,9 @@ public class Index {
   }
 
   Matrix createLsiMatrix(){
-    final Matrix matrix = wordDocFrequency().transpose();
+    final Matrix raw    = wordDocFrequency();
+    final boolean inconsistent = raw.getRowDimension() < raw.getColumnDimension();
+    final Matrix matrix = inconsistent ? raw.transpose() : raw;
     // compute the value of k (ie where to truncate)
     int k = (int) Math.floor(Math.sqrt(matrix.getColumnDimension()));
 
@@ -159,7 +162,12 @@ public class Index {
       }
     }
 
-    lsiMatrix = weights.transpose();
+    if(inconsistent){
+      lsiMatrix = weights.transpose();
+    } else {
+      lsiMatrix = weights;
+    }
+
     return lsiMatrix;
   }
 

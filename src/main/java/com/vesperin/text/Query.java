@@ -24,12 +24,24 @@ public interface Query {
   /**
    * Search for interesting methods in some index using a list of keywords.
    *
-   * @param words keywords query
-   * @param index existing corpus index
+   * @param words query of keywords
+   * @param index existing index
    * @return a new query result object.
    */
   static Result methods(List<Word> words, Index index){
-    return createQuery().search(words, index);
+    return createQuery().methodSearch(words, index);
+  }
+
+  /**
+   * Search for interesting fully.qualified.ClassName#methodName entries in
+   * some index using a list of Documents.
+   *
+   * @param docs query of documents
+   * @param index existing index
+   * @return a new query result object.
+   */
+  static Result types(List<Document> docs, Index index){
+    return createQuery().typeSearch(docs, index);
   }
 
   /**
@@ -40,19 +52,36 @@ public interface Query {
   }
 
   /**
-   * Searches the index for interesting documents.
+   * Searches the index for interesting methods.
    *
    * @param words list of words
    * @param index the corpus in a Matrix form.
    * @return a list of matching methods.
    */
-  default Result search(List<Word> words, Index index){
+  default Result methodSearch(List<Word> words, Index index){
 
     final List<Word> keywords       = Objects.requireNonNull(words);
     final Index      validIndex     = Objects.requireNonNull(index);
-    final Matrix     queryMatrix    = createQueryVector(keywords, validIndex);
+    final Matrix     queryMatrix    = createQueryVector(keywords, validIndex.wordList());
 
-    return search(queryMatrix, index.docSet(), index.lsiMatrix());
+    return methodSearch(queryMatrix, index.docSet(), index.lsiMatrix());
+  }
+
+  /**
+   * Searches the index for interesting types.
+   *
+   * @param documents list of documents
+   * @param index the corpus in a Matrix form.
+   * @return a list of matching types.
+   */
+  default Result typeSearch(List<Document> documents, Index index){
+
+    final List<Document>  keydocs        = Objects.requireNonNull(documents);
+    final Index           validIndex     = Objects.requireNonNull(index);
+    final List<Document>  docList        = validIndex.docSet().stream().collect(Collectors.toList());
+    final Matrix          queryMatrix    = createQueryVector(keydocs, docList);
+
+    return typeSearch(queryMatrix, index.wordList(), index.lsiMatrix().transpose());
   }
 
   /**
@@ -62,7 +91,7 @@ public interface Query {
    * @param index the indexed corpus (as a matrix).
    * @return a list of matching methods.
    */
-  default Result search(Matrix query, Set<Document> docSet, Matrix index) {
+  default Result methodSearch(Matrix query, Set<Document> docSet, Matrix index) {
     final Map<Integer, Double> scores = new HashMap<>();
 
     for(Document each : docSet){
@@ -84,18 +113,49 @@ public interface Query {
     final List<Document> scoredDocList = indices.stream()
       .map(docList::get).collect(Collectors.toList());
 
-    return Result.of(scoredDocList);
+    return Result.downcast(scoredDocList);
   }
 
-  static Matrix createQueryVector(List<Word> keywords, Index index){
-    final List<Word>  terms       = index.wordList();
+  /**
+   * Searches for a list of methods that match a given query.
+   *
+   * @param query list of words as a query.
+   * @param index the indexed corpus (as a matrix).
+   * @return a list of matching methods.
+   */
+  default Result typeSearch(Matrix query, List<Word> wordList, Matrix index) {
+    final Map<Integer, Double> scores = new HashMap<>();
 
+    int idx = 0; for(Word ignored : wordList){
+      double score = Jamas.computeSimilarity(query, Jamas.getCol(index, idx));
+      if(Doubles.compare(score, 0.0D) > 0){
+        scores.put(idx, score);
+      } idx++;
+    }
+
+
+    final List<Word> docList = wordList.stream().collect(Collectors.toList());
+
+    final List<Integer> indices = scores.entrySet().stream()
+      .sorted((a, b) -> Double.compare(a.getValue(), b.getValue()))
+      .map(Map.Entry::getKey).collect(Collectors.toList());
+
+    Collections.reverse(indices);
+
+    final List<Word> scoredDocList = indices.stream()
+      .map(docList::get).collect(Collectors.toList());
+
+    return Result.downcast(scoredDocList);
+  }
+
+
+  static <I> Matrix createQueryVector(List<I> keywords, List<I> terms){
     Matrix      queryMatrix = new Matrix(terms.size(), 1, 0.0D);
 
-    for (Word k : keywords) {
+    for (I k : keywords) {
       int termIndex = 0;
 
-      for (Word w : terms) {
+      for (I w : terms) {
         if(Objects.equals(k, w)){
           queryMatrix.set(termIndex, 0, 1.0D);
         }
@@ -109,18 +169,39 @@ public interface Query {
     return queryMatrix;
   }
 
-  class Result implements Iterable<Document> {
-    final List<Document> documents;
+  class Result implements Iterable<Object> {
+    final List<Object> documents;
 
-    Result(List<Document> documents){
+    Result(List<Object> documents){
       this.documents = documents;
     }
 
-    static Result of(List<Document> documents){
-      return new Result(documents);
+    static <I> Result downcast(List<I> items){
+      return of(items.stream().map(s -> (Object) s).collect(Collectors.toList()));
     }
 
-    @Override public Iterator<Document> iterator() {
+    static Result of(List<Object> items){
+      return new Result(items);
+    }
+
+
+    /**
+     * Automatically cast the items in the group to their correct type. It will fail fast
+     * if trying to cast an item to an incorrect type.
+     *
+     * @param result result set returned by {@link Query}
+     * @param klass target type
+     * @param <I> item type
+     * @return a new list of items; items were cast to their correct type.
+     * @throws ClassCastException if trying to cast an object to a subclass of which it is
+     *  not an instance.
+     */
+    static <I> List<I> items(Result result, Class<I> klass){
+      return result.documents.stream()
+        .map(klass::cast).collect(Collectors.toList());
+    }
+
+    @Override public Iterator<Object> iterator() {
       return documents.iterator();
     }
 

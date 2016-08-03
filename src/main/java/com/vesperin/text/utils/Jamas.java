@@ -5,7 +5,9 @@ import Jama.SingularValueDecomposition;
 import com.vesperin.text.Selection.Word;
 
 import java.io.PrintWriter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Huascar Sanchez
@@ -311,6 +313,16 @@ public class Jamas {
       }
     }
     return X;
+  }
+
+  public static <T> Map<T, Matrix> splitMatrix(List<T> items, Matrix matrix){
+    final Map<T, Matrix> map = new HashMap<>();
+    int idx = 0; for (T each : items){
+      map.put(each, Jamas.getRow(matrix, idx));
+      idx++;
+    }
+
+    return map;
   }
 }
 

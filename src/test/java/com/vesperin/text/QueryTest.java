@@ -6,15 +6,19 @@ import com.vesperin.base.Source;
 import com.vesperin.text.Grouping.Group;
 import com.vesperin.text.Grouping.Groups;
 import com.vesperin.text.Query.Result;
+import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
+import com.vesperin.text.spelling.StopWords;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author Huascar Sanchez
@@ -36,16 +40,44 @@ public class QueryTest {
   @Test public void testSearching() throws Exception {
 
     final List<Word>  words  = Selection.selects(100, code);
-    final Groups      groups = Grouping.formGroups(words);
+    final Groups      groups = Grouping.formWordGroups(words);
     final Index       index  = groups.index();
+
+    assertTrue(!groups.isEmpty());
+
     final Group       group  = Iterables.get(groups, 0/*most typical*/);
 
-    final List<Word>  keywords = group.wordList();
+    final List<Word>  keywords = Group.items(group, Word.class);
+    for(Word each : keywords){
+      final Result result = Query.methods(Collections.singletonList(each), index);
+      assertNotNull(result);
 
-    final Result result = Query.methods(keywords, index);
-    assertNotNull(result);
+      System.out.println(each + ": " + result);
+    }
 
-    System.out.println(result);
+
+  }
+
+  @Test public void testTypeSearching() throws Exception {
+
+    final List<Word>  words  = Selection.selects(100, code);
+    final Groups      groups = Grouping.formDocGroups(words);
+    final Index       index  = groups.index();
+
+    assertTrue(!groups.isEmpty());
+
+    final Group       group  = Iterables.get(groups, 0/*most typical*/);
+
+    final List<Document>  keywords = Group.items(group, Document.class);
+
+    for(Document each : keywords){
+      final Result result = Query.types(Collections.singletonList(each), index);
+      assertNotNull(result);
+
+      System.out.println(each + ": " + result);
+    }
+
+
 
   }
 

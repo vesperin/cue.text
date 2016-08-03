@@ -35,9 +35,19 @@ public class GroupingTest {
     words = extractor.weightedWords(100, code, Collections.emptySet(), StopWords.all());
   }
 
-  @Test public void testGrouping() throws Exception {
+  @Test public void testWordGrouping() throws Exception {
     final Grouping grouping = new WordGrouping();
-    final Grouping.Groups groups = grouping.groups(words);
+    final Grouping.Groups groups = grouping.wordGroup(words);
+
+    assertTrue(!groups.isEmpty());
+
+    System.out.println(groups);
+
+  }
+
+  @Test public void testDocGrouping() throws Exception {
+    final Grouping grouping = new WordGrouping();
+    final Grouping.Groups groups = grouping.docGroups(words);
 
     assertTrue(!groups.isEmpty());
 
