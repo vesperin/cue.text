@@ -105,9 +105,6 @@ public class Index {
     docCount  = indexMap.keySet().size();
     wordCount = wordsSet.size();
     wordList.addAll(wordsSet);
-
-//    createWordDocMatrix();
-//    createLsiMatrix();
   }
 
   void createWordDocMatrix(){
