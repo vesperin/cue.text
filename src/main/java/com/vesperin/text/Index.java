@@ -55,6 +55,8 @@ public class Index {
   static Index createIndex(List<Word> words){
     final Index index = new Index();
     index.index(words);
+    index.createWordDocMatrix();
+    index.createLsiMatrix();
     return index;
   }
 
@@ -104,8 +106,8 @@ public class Index {
     wordCount = wordsSet.size();
     wordList.addAll(wordsSet);
 
-    createWordDocMatrix();
-    createLsiMatrix();
+//    createWordDocMatrix();
+//    createLsiMatrix();
   }
 
   void createWordDocMatrix(){

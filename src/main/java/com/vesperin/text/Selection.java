@@ -749,6 +749,7 @@ public interface Selection {
       if(words.isEmpty()) return words;
 
       index.index(words);
+      index.createWordDocMatrix();
 
       final Map<Word, Double> scores = weightWords(index.wordDocFrequency(), index.wordList());
 

@@ -37,7 +37,7 @@ public class GroupingTest {
 
   @Test public void testWordGrouping() throws Exception {
     final Grouping grouping = new WordGrouping();
-    final Grouping.Groups groups = grouping.wordGroup(words);
+    final Grouping.Groups groups = grouping.groups(words);
 
     assertTrue(!groups.isEmpty());
 
@@ -45,15 +45,15 @@ public class GroupingTest {
 
   }
 
-  @Test public void testDocGrouping() throws Exception {
-    final Grouping grouping = new WordGrouping();
-    final Grouping.Groups groups = grouping.docGroups(words);
-
-    assertTrue(!groups.isEmpty());
-
-    System.out.println(groups);
-
-  }
+//  @Test public void testDocGrouping() throws Exception {
+//    final Grouping grouping = new WordGrouping();
+//    final Grouping.Groups groups = grouping.docGroups(words);
+//
+//    assertTrue(!groups.isEmpty());
+//
+//    System.out.println(groups);
+//
+//  }
 
   @AfterClass public static void tearDown(){
     words.clear();
