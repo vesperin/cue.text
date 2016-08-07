@@ -196,7 +196,7 @@ public interface Query {
      * @throws ClassCastException if trying to cast an object to a subclass of which it is
      *  not an instance.
      */
-    static <I> List<I> items(Result result, Class<I> klass){
+    public static <I> List<I> items(Result result, Class<I> klass){
       return result.documents.stream()
         .map(klass::cast).collect(Collectors.toList());
     }
