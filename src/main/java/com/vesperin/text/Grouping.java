@@ -2,6 +2,7 @@ package com.vesperin.text;
 
 import Jama.Matrix;
 import com.google.common.collect.ImmutableMultiset;
+import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
 import com.vesperin.text.utils.Jamas;
 
@@ -13,6 +14,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
 
@@ -26,12 +28,23 @@ public interface Grouping {
   /**
    * Assigns words to specific groups.
    *
-   * @param selectedWords relevant words list. See {@link #formGroups(List)}
-   * @return a new Groups.
+   * @param selectedWords relevant words list. See {@link #formWordGroups(List)}
+   * @return a new Groups object.
    */
-  static Groups formGroups(List<Word> selectedWords){
-    return new GroupingImpl().groups(selectedWords);
+  static Groups formWordGroups(List<Word> selectedWords){
+    return new GroupingImpl().wordGroup(selectedWords);
   }
+
+  /**
+   * Assigns documents to specific groups.
+   *
+   * @param selectedWords relevant words list. See {@link #formWordGroups(List)}
+   * @return a new Groups object.
+   */
+  static Groups formDocGroups(List<Word> selectedWords){
+    return new GroupingImpl().docGroups(selectedWords);
+  }
+
 
   /**
    * Groups a list of words using the Kmeans clustering algorithm.
@@ -39,11 +52,25 @@ public interface Grouping {
    * @param words a non empty list of words to be clustered.
    * @return a list of clusters.
    */
-  default Groups groups(List<Word> words) {
+  default Groups wordGroup(List<Word> words) {
     if(Objects.isNull(words) || words.isEmpty())
       return Groups.emptyGroups();
 
-    return groups(words, new KMeans());
+    return groups(words, new WordKMeans());
+  }
+
+  /**
+   * Groups a list of documents containing words that are in input or list of words.
+   * Kmeans clustering algorithm is the default clustering algorithm.
+   *
+   * @param words a non empty list of words to be clustered.
+   * @return a list of clusters.
+   */
+  default Groups docGroups(List<Word> words) {
+    if(Objects.isNull(words) || words.isEmpty())
+      return Groups.emptyGroups();
+
+    return groups(words, new DocumentKMeans());
   }
 
   /**
@@ -53,7 +80,7 @@ public interface Grouping {
    * @param strategy magnet strategy
    * @param <R> return type
    * @param <I> input type
-   * @return a list of groups
+   * @return a list of wordGroup
    */
   default <R, I> R groups(List<I> items, Magnet<R, I> strategy) {
     return strategy.apply(items);
@@ -67,7 +94,13 @@ public interface Grouping {
     R apply(List<I> items);
   }
 
-  class KMeans implements Magnet <Groups, Word> {
+  abstract class Kmeans implements Magnet <Groups, Word> {
+    static boolean equals(List<Group> a, List<Group> b){
+      return ImmutableMultiset.copyOf(a).equals(ImmutableMultiset.copyOf(b));
+    }
+  }
+
+  class WordKMeans extends Kmeans {
 
     @Override public Groups apply(List<Word> words) {
       final Index index = Index.createIndex(words);
@@ -130,21 +163,105 @@ public interface Grouping {
       return Groups.of(clusters, index);
     }
 
-    static boolean equals(List<Group> a, List<Group> b){
-      return ImmutableMultiset.copyOf(a).equals(ImmutableMultiset.copyOf(b));
+  }
+
+  class DocumentKMeans extends Kmeans {
+    @Override public Groups apply(List<Word> words) {
+
+      final Index index = Index.createIndex(words);
+
+      final List<Document> docList = index.docSet().stream()
+        .collect(Collectors.toList());
+
+      final Matrix docToMatrix = index.lsiMatrix().transpose();
+      final Map<Document, Matrix> documents = Jamas.splitMatrix(docList, docToMatrix);
+
+      // prelim work
+      int numDocs   = docList.size();
+      int numGroups = (int) Math.floor(Math.sqrt(numDocs));
+
+      final List<Document> initialClusters = new ArrayList<>(numGroups);
+      initialClusters.addAll(
+        docList.stream().limit(numGroups).collect(toList())
+      );
+
+      // build initial clusters
+      final List<Group> clusters = new ArrayList<>();
+      for(int i = 0; i < numGroups; i++){
+        final Group cluster = new GroupImpl();
+        cluster.add(initialClusters.get(i), documents.get(docList.get(i)));
+        clusters.add(cluster);
+      }
+
+      final List<Group> prevClusters = new ArrayList<>();
+      while(true){
+        int i; for (i = 0; i < numGroups; i++) {
+          clusters.get(i).computeCenter();
+        }
+
+        for (i = 0; i < numDocs; i++) {
+          int bestCluster = 0;
+          double maxDistance = Double.MIN_VALUE;
+          final Document word = docList.get(i);
+          final Matrix   doc  = documents.get(word);
+
+          for(int j = 0; j < numGroups; j++){
+            final double distance = clusters.get(j).proximity(doc);
+            if (distance > maxDistance) {
+              bestCluster = j;
+              maxDistance = distance;
+            }
+          }
+
+          clusters.stream()
+            .filter(cluster -> cluster.vector(word) != null)
+            .forEach(cluster -> cluster.remove(word));
+
+          clusters.get(bestCluster).add(word, doc);
+        }
+
+        if(equals(clusters, prevClusters)){
+          break;
+        }
+
+        prevClusters.clear();
+        prevClusters.addAll(clusters);
+      }
+
+
+      return Groups.of(clusters, index);
     }
   }
+
 
   /**
    * Group holding a set of similar words (similar by some metric value).
    */
-  interface Group {
+  interface Group extends Iterable <Object> {
+
     /**
-     * Adds a word and its vector to this group.
-     * @param word word object
+     * Automatically cast the items in the group to their correct type. It will fail fast
+     * if trying to cast an item to an incorrect type.
+     *
+     * @param group formed group of items
+     * @param klass target type
+     * @param <I> item type
+     * @return a new list of items; items were cast to their correct type.
+     * @throws ClassCastException if trying to cast an object to a subclass of which it is
+     *  not an instance.
+     */
+    static <I> List<I> items(Group group, Class<I> klass){
+      return group.itemList().stream()
+        .map(klass::cast).collect(Collectors.toList());
+    }
+
+    /**
+     * Adds an item and its vector to this group.
+     *
+     * @param item item object
      * @param vector word vector
      */
-    void add(Word word, Matrix vector);
+    void add(Object item, Matrix vector);
 
     /**
      * Gets the distance between the computeCenter vector of this group and
@@ -168,24 +285,36 @@ public interface Grouping {
     Matrix center();
 
     /**
-     * Removes the word from this group.
-     *
-     * @param word word to remove
+     * @return list of items in group
      */
-    void remove(Word word);
+    List<Object> itemList();
 
     /**
-     * Gets the word vector.
+     * @return true if the group is empty; false otherwise.
+     */
+    default boolean isEmpty() {
+      return itemList().isEmpty();
+    }
+
+
+    @Override default Iterator<Object> iterator() {
+      return itemList().iterator();
+    }
+
+    /**
+     * Removes the item from this group.
      *
-     * @param word word object.
+     * @param item item to remove
+     */
+    void remove(Object item);
+
+    /**
+     * Gets an item's vector.
+     *
+     * @param item item object.
      * @return the word vector.
      */
-    Matrix vector(Word word);
-
-    /**
-     * @return list of words in group
-     */
-    List<Word> wordList();
+    Matrix vector(Object item);
   }
 
 
@@ -193,20 +322,20 @@ public interface Grouping {
    * A Group of words attracted by some magnet strategy.
    */
   class GroupImpl implements Group {
-    final Map<Word, Matrix> matrixMap;
-    final List<Word>        words;
+    final Map<Object, Matrix> matrixMap;
+    final List<Object>        items;
 
     Matrix centroid;
 
     GroupImpl(){
       this.matrixMap = new LinkedHashMap<>();
-      this.words     = new LinkedList<>();
+      this.items     = new LinkedList<>();
       this.centroid  = null;
     }
 
-    @Override public void add(Word word, Matrix vector) {
-      matrixMap.put(word, vector);
-      wordList().add(word);
+    @Override public void add(Object item, Matrix vector) {
+      matrixMap.put(item, vector);
+      itemList().add(item);
     }
 
     @Override public double proximity(Matrix toDoc) {
@@ -220,10 +349,10 @@ public interface Grouping {
     @Override public Matrix computeCenter(){
       if(matrixMap.isEmpty()) return null;
 
-      final Matrix matrix = matrixMap.get(words.get(0));
+      final Matrix matrix = matrixMap.get(items.get(0));
       centroid = new Matrix(matrix.getRowDimension(), matrix.getColumnDimension());
 
-      for(Word each : matrixMap.keySet()){
+      for(Object each : matrixMap.keySet()){
         centroid = centroid.plus(matrixMap.get(each));
       }
 
@@ -236,23 +365,21 @@ public interface Grouping {
       return centroid;
     }
 
-    @Override public void remove(Word word) {
-      matrixMap.remove(word);
-      wordList().remove(word);
+    @Override public void remove(Object item) {
+      matrixMap.remove(item);
+      itemList().remove(item);
     }
 
-    @Override public Matrix vector(Word word){
-      return matrixMap.get(word);
+    @Override public Matrix vector(Object item){
+      return matrixMap.get(item);
     }
 
-    @Override public List<Word> wordList() {
-      return words;
+    @Override public List<Object> itemList() {
+      return items;
     }
 
     @Override public String toString() {
-      return "[" + String.join(", ", wordList().stream()
-        .map(Word::element).collect(toList()))
-        + "]";
+      return "[" + String.join(", ", itemList().stream().map(Object::toString).collect(toList())) + "]";
     }
   }
 
@@ -263,11 +390,13 @@ public interface Grouping {
 
     private Groups(List<Group> groups, Index index){
       this.index  = index;
-      this.groups = groups;
+      this.groups = groups.stream()
+        .filter(c -> !c.isEmpty())
+        .collect(Collectors.toList());
     }
 
     /**
-     * @return the list of groups produced by {@link Grouping#groups(List)}.
+     * @return the list of wordGroup produced by {@link Grouping#wordGroup(List)}.
      */
     public List<Group> groupList(){
       return groups;
