@@ -498,9 +498,7 @@ public interface Selection {
       methodName        = methodName.toLowerCase(Locale.ENGLISH);
       if(!whiteSet.contains(methodName) && !whiteSet.isEmpty()) return false;
 
-
-      final String identifier = simpleName.getIdentifier()
-        .replaceAll("(-?\\d+)|(\\+1)", "");
+      final String identifier = WordCorrector.trimSideNumbers(simpleName.getIdentifier(), false);
 
       if(visited.contains(identifier)) return false;
       final String  pattern         = Pattern.quote("_");
