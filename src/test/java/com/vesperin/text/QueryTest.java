@@ -8,6 +8,7 @@ import com.vesperin.text.Grouping.Groups;
 import com.vesperin.text.Query.Result;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
+import com.vesperin.text.spelling.StopWords;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -38,7 +39,7 @@ public class QueryTest {
 
   @Test public void testSearching() throws Exception {
 
-    final List<Word>  words  = Selection.selects(100, code);
+    final List<Word>  words  = Selection.selects(100, code, Selection.inspectMethodBody(Collections.emptySet(), StopWords.all()));
     final Groups      groups = Grouping.formWordGroups(words);
     final Index       index  = groups.index();
 
@@ -59,7 +60,7 @@ public class QueryTest {
 
   @Test public void testTypeSearching() throws Exception {
 
-    final List<Word>  words  = Selection.selects(100, code);
+    final List<Word>  words  = Selection.selects(100, code, Selection.inspectClassName(Collections.emptySet(), StopWords.all()));
     final Groups      groups = Grouping.formDocGroups(words);
     final Index       index  = groups.index();
 
