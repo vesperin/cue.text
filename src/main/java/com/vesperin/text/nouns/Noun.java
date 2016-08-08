@@ -17,12 +17,15 @@ public class Noun {
     return new Noun();
   }
 
+  public static Noun get() {
+    return Installer.NOUN;
+  }
 
-  boolean isSingular(String word){
+  public boolean isSingular(String word){
     return Objects.equals(singularOf(word), word);
   }
 
-  boolean isPlural(String word){
+  public boolean isPlural(String word){
     return Objects.equals(pluralOf(word), word);
   }
 
@@ -48,6 +51,11 @@ public class Noun {
 
   void clearGrammar(){
     grammar.clear();
+  }
+
+
+  private static class Installer {
+    static final Noun NOUN = Noun.newNoun();
   }
 
 }

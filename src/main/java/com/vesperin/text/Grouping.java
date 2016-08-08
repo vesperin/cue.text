@@ -105,7 +105,7 @@ public interface Grouping {
     @Override public Groups apply(List<Word> words) {
       final Index index = Index.createIndex(words);
 
-      final Map<Word, Matrix> wordToMatrix = Jamas.splitMatrix(index.wordList(), index.lsiMatrix());
+      final Map<Word, Matrix> wordToMatrix = Jamas.splitMatrix(index.wordList(), index.wordDocFrequency());
 
       // prelim work
       int numDocs   = words.size();
@@ -173,7 +173,7 @@ public interface Grouping {
       final List<Document> docList = index.docSet().stream()
         .collect(Collectors.toList());
 
-      final Matrix docToMatrix = index.lsiMatrix().transpose();
+      final Matrix docToMatrix = index.wordDocFrequency().transpose();
       final Map<Document, Matrix> documents = Jamas.splitMatrix(docList, docToMatrix);
 
       // prelim work

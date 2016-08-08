@@ -20,6 +20,8 @@ import static org.junit.Assert.assertTrue;
 public class GroupingTest {
 
   private static List<Word> words;
+  private static List<Word> words1;
+  private static List<Word> words2;
 
   @BeforeClass public static void setup(){
     final Selection extractor = new WordDistilling();
@@ -32,12 +34,34 @@ public class GroupingTest {
       Codebase.randomCode("Query3")
     );
 
-    words = extractor.weightedWords(100, code, Collections.emptySet(), StopWords.all());
+    words  = extractor.weightedWords(100, code, Selection.inspectMethodBody(Collections.emptySet(), StopWords.all()));
+    words1 = extractor.weightedWords(100, code, Selection.inspectClassName(Collections.emptySet(), StopWords.of(StopWords.ENGLISH, StopWords.JAVA)));
+    words2 = extractor.weightedWords(100, code, Selection.inspectMethodName(Collections.emptySet(), StopWords.all()));
   }
 
   @Test public void testWordGrouping() throws Exception {
     final Grouping grouping = new WordGrouping();
     final Grouping.Groups groups = grouping.wordGroup(words);
+
+    assertTrue(!groups.isEmpty());
+
+    System.out.println(groups);
+
+  }
+
+  @Test public void testWordGrouping1() throws Exception {
+    final Grouping grouping = new WordGrouping();
+    final Grouping.Groups groups = grouping.wordGroup(words1);
+
+    assertTrue(!groups.isEmpty());
+
+    System.out.println(groups);
+
+  }
+
+  @Test public void testWordGrouping2() throws Exception {
+    final Grouping grouping = new WordGrouping();
+    final Grouping.Groups groups = grouping.wordGroup(words2);
 
     assertTrue(!groups.isEmpty());
 
@@ -55,8 +79,34 @@ public class GroupingTest {
 
   }
 
+
+  @Test public void testDocGrouping1() throws Exception {
+    final Grouping grouping = new WordGrouping();
+    final Grouping.Groups groups = grouping.docGroups(words1);
+
+    assertTrue(!groups.isEmpty());
+
+    System.out.println(groups);
+
+  }
+
+
+  @Test public void testDocGrouping2() throws Exception {
+    final Grouping grouping = new WordGrouping();
+    final Grouping.Groups groups = grouping.docGroups(words1);
+
+    assertTrue(!groups.isEmpty());
+
+    System.out.println(groups);
+
+  }
+
   @AfterClass public static void tearDown(){
     words.clear();
-    words = null;
+    words1.clear();
+    words2.clear();
+    words  = null;
+    words1 = null;
+    words2 = null;
   }
 }

@@ -39,7 +39,7 @@ public class QueryTest {
 
   @Test public void testSearching() throws Exception {
 
-    final List<Word>  words  = Selection.selects(100, code);
+    final List<Word>  words  = Selection.selects(100, code, Selection.inspectMethodBody(Collections.emptySet(), StopWords.all()));
     final Groups      groups = Grouping.formWordGroups(words);
     final Index       index  = groups.index();
 
@@ -60,9 +60,11 @@ public class QueryTest {
 
   @Test public void testTypeSearching() throws Exception {
 
-    final List<Word>  words  = Selection.selects(100, code);
+    final List<Word>  words  = Selection.selects(100, code, Selection.inspectClassName(Collections.emptySet(), StopWords.all()));
     final Groups      groups = Grouping.formDocGroups(words);
     final Index       index  = groups.index();
+
+    System.out.println(groups.groupList().size());
 
     assertTrue(!groups.isEmpty());
 
@@ -76,9 +78,6 @@ public class QueryTest {
 
       System.out.println(each + ": " + result);
     }
-
-
-
   }
 
   @AfterClass public static void tearDown(){

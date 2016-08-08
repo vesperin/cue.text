@@ -28,10 +28,10 @@ public class WordSelectionTest {
       Codebase.quickSort("QuickSort5")
     );
 
-    final List<Word> words = extractor.from(code, Collections.emptySet(), StopWords.all());
+    final List<Word> words = extractor.from(code, Selection.inspectMethodBody(Collections.emptySet(), StopWords.all()));
     assertThat(words.isEmpty(), is(false));
 
-    final List<Word> relevant = extractor.frequentWords(words.size(), code, Collections.emptySet(), StopWords.all());
+    final List<Word> relevant = extractor.frequentWords(words.size(), code, Selection.inspectMethodBody(Collections.emptySet(), StopWords.all()));
 
     for(Word each : relevant){
       System.out.println(each.container() + "#" + each.element());
@@ -48,7 +48,7 @@ public class WordSelectionTest {
       Codebase.quickSort("QuickSort5")
     );
 
-    final List<Word> words = Selection.selects(code);
+    final List<Word> words = Selection.selects(code, Selection.inspectClassName(Collections.emptySet(), StopWords.all()));
     assertThat(words.isEmpty(), is(false));
   }
 
@@ -63,7 +63,7 @@ public class WordSelectionTest {
       Codebase.randomCode("Query3")
     );
 
-    final List<Word> words = extractor.frequentWords(2, code, Collections.emptySet(), StopWords.all());
+    final List<Word> words = extractor.frequentWords(2, code, Selection.inspectMethodBody(Collections.emptySet(), StopWords.all()));
     assertThat(words.isEmpty(), is(false));
   }
 
@@ -78,7 +78,10 @@ public class WordSelectionTest {
       Codebase.randomCode("Query3")
     );
 
-    final List<Word> words = extractor.weightedWords(5, code, Collections.emptySet(), StopWords.all());
+    final List<Word> words = extractor.weightedWords(5, code, Selection.inspectClassName(Collections.emptySet(), StopWords.of(StopWords.JAVA, StopWords.ENGLISH)));
+    final List<Word> words2 = extractor.flattenWordList(code, Selection.inspectClassName(Collections.emptySet(), StopWords.of(StopWords.JAVA, StopWords.ENGLISH)));
+    System.out.println(words);
+    System.out.println(words2);
     assertThat(words.isEmpty(), is(false));
   }
 }

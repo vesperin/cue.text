@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -71,11 +72,30 @@ public enum StopWords {
   }
 
   /**
+   * @return a constructed set of stop word objects
+   */
+  public static Set<StopWords> of(StopWords... stopWords){
+
+    if(Objects.isNull(stopWords) || stopWords.length == 0) return Collections.emptySet();
+
+    Set<StopWords> result = null;
+    for (StopWords each : stopWords){
+      if(Objects.isNull(result)) { result = EnumSet.of(each); } else {
+        result.add(each);
+      }
+    }
+
+    return result;
+
+  }
+
+  /**
    * @return a set of all currently available
    *  StopWords
    */
   public static Set<StopWords> all(){
     return EnumSet.of(StopWords.ENGLISH, StopWords.JAVA, StopWords.GENERAL);
+
   }
 
   /**
