@@ -44,6 +44,13 @@ import static java.util.stream.Collectors.toList;
  * @author Huascar Sanchez
  */
 public interface Selection {
+  /**
+   * Creates a word collection strategy that introspects the class name in search for words.
+   */
+  static WordCollection inspectClassName(Set<StopWords> stopWords){
+    return new ClassNameWordCollection(Collections.emptySet(), stopWords);
+  }
+
 
   /**
    * Creates a word collection strategy that introspects the class name in search for words.
@@ -55,8 +62,23 @@ public interface Selection {
   /**
    * Creates a word collection strategy that introspects the method name in search for words.
    */
+  static WordCollection inspectMethodName(Set<StopWords> stopWords){
+    return new MethodNameWordCollection(Collections.emptySet(), stopWords);
+  }
+
+  /**
+   * Creates a word collection strategy that introspects the method name in search for words.
+   */
   static WordCollection inspectMethodName(Set<String> whiteSet, Set<StopWords> stopWords){
     return new MethodNameWordCollection(whiteSet, stopWords);
+  }
+
+  /**
+   * Creates a word collection strategy that introspects the entire method body (including
+   * signature) in search for words.
+   */
+  static WordCollection inspectMethodBody(Set<StopWords> stopWords){
+    return new MethodBodyWordCollection(Collections.emptySet(), stopWords);
   }
 
   /**
