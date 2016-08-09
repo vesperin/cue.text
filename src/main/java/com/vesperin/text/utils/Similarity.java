@@ -78,4 +78,55 @@ public class Similarity {
 
     return v1[b.length()];
   }
+
+
+  /**
+   * Distance metric based on Longest Common Subsequence, from the notes "An
+   * LCS-based string metric" by Daniel Bakkelund.
+   *
+   * @param s1 first string
+   * @param s2 second string
+   * @return lcs metric score
+   */
+  public static double lcsSimilarity(String s1, String s2){
+    return 1.0 - ((double) lcs(s1, s2)) / Math.max(s1.length(), s2.length());
+  }
+
+  /**
+   * Longest common sub-sequence
+   *
+   * @param s1 first string
+   * @param s2 second string
+   * @return the longest common sub sequence
+   */
+  private static int lcs(String s1, String s2){
+
+    int m = s1.length();
+    int n = s2.length();
+    char[] X = s1.toCharArray();
+    char[] Y = s2.toCharArray();
+
+    int[][] C = new int[m + 1][n + 1];
+
+    for (int i = 0; i <= m; i++) {
+      C[i][0] = 0;
+    }
+
+    for (int j = 0; j <= n; j++) {
+      C[0][j] = 0;
+    }
+
+    for (int i = 1; i <= m; i++) {
+      for (int j = 1; j <= n; j++) {
+        if (X[i - 1] == Y[j - 1]) {
+          C[i][j] = C[i - 1][j - 1] + 1;
+
+        } else {
+          C[i][j] = Math.max(C[i][j - 1], C[i - 1][j]);
+        }
+      }
+    }
+
+    return C[m][n];
+  }
 }

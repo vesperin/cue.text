@@ -14,6 +14,7 @@ import com.vesperin.text.nouns.Noun;
 import com.vesperin.text.spelling.StopWords;
 import com.vesperin.text.spelling.WordCorrector;
 import com.vesperin.text.utils.Jamas;
+import com.vesperin.text.utils.Strings;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
@@ -205,10 +206,13 @@ public interface Selection {
 
 
   static List<Word> cleansing(Set<StopWords> stopWords, List<Word> relevant){
-    return relevant.stream()
+    final List<Word> result = relevant.stream()
       .filter(w -> !Objects.isNull(w) && !StopWords.isStopWord(stopWords, w.element().toLowerCase(Locale.ENGLISH)))
       .map(w -> Noun.get().isPlural(w.element()) ? WordImpl.from(Noun.get().singularOf(w.element()), w.value(), w.container()) : w )
       .collect(Collectors.toList());
+
+    System.out.println(result);
+    return result;
   }
 
 
@@ -355,6 +359,17 @@ public interface Selection {
   }
 
   interface Document {
+
+    /**
+     * Gets the names of all documents in the list of documents.
+     *
+     * @param documents list of documents to parse
+     * @return a list of document names.
+     */
+    static List<String> names(List<Document> documents){
+      return documents.stream().map(Document::path).collect(Collectors.toList());
+    }
+
     /**
      * @return document id
      */
@@ -369,6 +384,11 @@ public interface Selection {
      * @return the path of document
      */
     String path();
+
+    /**
+     * @return the name at the end of the {@link #path()}.
+     */
+    String shortName();
   }
 
   class DocumentImpl implements Document {
@@ -412,6 +432,15 @@ public interface Selection {
 
     @Override public String path() {
       return filename;
+    }
+
+    @Override public String shortName() {
+      assert !Objects.isNull(path());
+
+      final int    index  = path().lastIndexOf(".");
+      return index > 0
+        ? path().substring(index + 1, path().length())
+        : path();
     }
 
     @Override public String toString() {
@@ -503,9 +532,9 @@ public interface Selection {
     static void addToWordList(String identifier, String container, Set<StopWords> stopWords, List<Word> wordList){
       if(!isThrowableAlike(identifier)){
         // make sure we have a valid split
-        String[] split = splitMassaging(identifier);
+        String[] split = Strings.splits(identifier);
 
-        for(String eachLabel : split){
+        for(String eachLabel : Strings.intersect(split, split)){
 
           if(" ".equals(eachLabel) || eachLabel.isEmpty()
             || StopWords.isStopWord(stopWords, eachLabel, NOUN.pluralOf(eachLabel)))
@@ -580,15 +609,6 @@ public interface Selection {
       final String right = method.isPresent() ? method.get().getName().getIdentifier() + (method.get().isConstructor() ? "(C)" : "") : "";
 
       return left + right;
-    }
-
-    static String[] splitMassaging(String identifier){
-      String[] split = identifier.split("((?<!(^|[A-Z]))(?=[A-Z])|(?<!^)(?=[A-Z][a-z]))|_");
-      if(split.length == 1){
-        split = split[0].split(Pattern.quote("_"));
-      }
-
-      return split;
     }
 
     Set<StopWords> stopWords(){

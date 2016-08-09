@@ -9,6 +9,7 @@ import com.vesperin.text.utils.Jamas;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -64,7 +65,7 @@ public interface Query {
     final Index      validIndex     = Objects.requireNonNull(index);
     final Matrix     queryMatrix    = createQueryVector(keywords, validIndex.wordList());
 
-    return methodSearch(queryMatrix, index.docSet(), index.lsiMatrix());
+    return methodSearch(queryMatrix, index.docSet(), Jamas.tfidfMatrix(index.wordDocFrequency()));
   }
 
   /**
@@ -81,7 +82,7 @@ public interface Query {
     final List<Document>  docList        = validIndex.docSet().stream().collect(Collectors.toList());
     final Matrix          queryMatrix    = createQueryVector(keydocs, docList);
 
-    return typeSearch(queryMatrix, index.wordList(), index.lsiMatrix().transpose());
+    return typeSearch(queryMatrix, index.wordList(), Jamas.tfidfMatrix(index.wordDocFrequency().transpose()));
   }
 
   /**
@@ -124,7 +125,7 @@ public interface Query {
    * @return a list of matching methods.
    */
   default Result typeSearch(Matrix query, List<Word> wordList, Matrix index) {
-    final Map<Integer, Double> scores = new HashMap<>();
+    final Map<Integer, Double> scores = new LinkedHashMap<>();
 
     int idx = 0; for(Word ignored : wordList){
       double score = Jamas.computeSimilarity(query, Jamas.getCol(index, idx));
@@ -143,7 +144,9 @@ public interface Query {
     Collections.reverse(indices);
 
     final List<Word> scoredDocList = indices.stream()
-      .map(docList::get).collect(Collectors.toList());
+      .map(docList::get)
+      .sorted((a, b) -> a.element().compareTo(b.element()))
+      .collect(Collectors.toList());
 
     return Result.downcast(scoredDocList);
   }

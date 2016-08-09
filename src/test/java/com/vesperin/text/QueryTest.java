@@ -60,8 +60,9 @@ public class QueryTest {
 
   @Test public void testTypeSearching() throws Exception {
 
-    final List<Word>  words  = Selection.selects(100, code, Selection.inspectClassName(Collections.emptySet(), StopWords.all()));
+    final List<Word>  words  = Selection.selects(100, code, Selection.inspectClassName(StopWords.of(StopWords.JAVA)));
     final Groups      groups = Grouping.formDocGroups(words);
+
     final Index       index  = groups.index();
 
     System.out.println(groups.groupList().size());
@@ -69,14 +70,41 @@ public class QueryTest {
     assertTrue(!groups.isEmpty());
 
     final Group       group  = Iterables.get(groups, 0/*most typical*/);
-
     final List<Document>  keywords = Group.items(group, Document.class);
 
     for(Document each : keywords){
       final Result result = Query.types(Collections.singletonList(each), index);
       assertNotNull(result);
+    }
+  }
 
-      System.out.println(each + ": " + result);
+  @Test public void testReGrouping() throws Exception {
+
+    final List<Word>  words  = Selection.selects(100, code, Selection.inspectClassName(StopWords.of(StopWords.JAVA)));
+    final Groups      groups = Grouping.formDocGroups(words);
+
+    final Index       index  = groups.index();
+
+    System.out.println(groups.groupList().size());
+
+    assertTrue(!groups.isEmpty());
+
+
+    final Group  g1 = Group.merge(Document.class, groups);
+    final Groups g2 = Grouping.formDocGroups(g1);
+
+
+    assertTrue(!g2.isEmpty());
+
+
+    for(Group eachGroup : g2){
+      final List<Document> docs = Group.items(eachGroup, Document.class);
+      final Result result = Query.types(docs, index);
+
+      assertNotNull(result);
+      assertTrue(Result.items(result, Word.class).size() < 3);
+
+      System.out.println(Document.names(docs) + ": " + result);
     }
   }
 

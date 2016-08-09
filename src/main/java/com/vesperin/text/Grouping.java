@@ -4,16 +4,12 @@ import Jama.Matrix;
 import com.google.common.collect.ImmutableMultiset;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
+import com.vesperin.text.graphs.Edge;
+import com.vesperin.text.graphs.UndirectedGraph;
+import com.vesperin.text.graphs.Vertex;
 import com.vesperin.text.utils.Jamas;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
@@ -47,6 +43,17 @@ public interface Grouping {
 
 
   /**
+   * Assigns documents in an existing group to a new set of groups.
+   *
+   * @param selectedGroup clustered documents.
+   * @return a new Groups object.
+   */
+  static Groups formDocGroups(Group selectedGroup){
+    return new GroupingImpl().reGroups(selectedGroup);
+  }
+
+
+  /**
    * Groups a list of words using the Kmeans clustering algorithm.
    *
    * @param words a non empty list of words to be clustered.
@@ -74,6 +81,18 @@ public interface Grouping {
   }
 
   /**
+   * Regroups an existing group based on the longest common sub-sequence metric.
+   *
+   * @param group group to be regroup-ed
+   * @return a new clusters object.
+   */
+  default Groups reGroups(Group group){
+    final List<Document>  docs      = Group.items(group, Document.class);
+    return groups(docs, new UnionFindClustering());
+
+  }
+
+  /**
    * Groups a list of items according to magnetic strategy.
    *
    * @param items items to be grouped
@@ -94,8 +113,163 @@ public interface Grouping {
     R apply(List<I> items);
   }
 
+  class UnionFindClustering implements Magnet <Groups, Document> {
+
+    @Override public Groups apply(List<Document> items) {
+
+
+      final Set<Document> documents = items.stream().collect(Collectors.toSet());
+
+      final UndirectedGraph graph = new UndirectedGraph(documents);
+      UndirectedGraph MST = Kruskal.run(graph);
+
+      final List<Group> clusters = makeClusters(MST);
+
+
+      return Groups.of(clusters);
+    }
+
+
+    static List<Group> makeClusters(UndirectedGraph graph){
+      final List<Edge> edges = graph.edgeList().stream().collect(Collectors.toList());
+      final UnionFind uf = new UnionFind();
+
+      graph.vertexList().forEach(uf::create);
+
+      for (Edge e : edges) {
+        uf.union(e.start(), e.end());
+      }
+
+      return uf.makeClusters();
+    }
+
+
+  }
+
+  final class UnionFind {
+    private final Map<Vertex, List<Vertex>> childrenMap = new HashMap<>();
+    private final Map<Vertex, Vertex>       parentMap   = new HashMap<>();
+
+    /**
+     * Used to create a childrenMap for the given {@link Vertex} and a parentMap
+     * for the given {@link Vertex} in this {@link UnionFind}
+     * @param v the given {@link Vertex}
+     */
+    void create(Vertex v) {
+      this.childrenMap().put(v, new ArrayList<>(Collections.singletonList(v)));
+      this.parentMap().put(v, v);
+    }
+
+    /**
+     * To find the parent of the given {@link Vertex} in this {@link UnionFind}
+     * @param v the given {@link Vertex}
+     * @return the parent of the given {@link Vertex} in this {@link UnionFind}
+     */
+    Vertex find(Vertex v) {
+      return this.parentMap().get(v);
+    }
+
+    /**
+     * To union two given {@link Vertex}s in this {@link UnionFind}
+     * @param a first given {@link Vertex}
+     * @param b second given {@link Vertex}
+     */
+    void union(Vertex a, Vertex b) {
+      Vertex rentA = this.find(a);
+      Vertex rentB = this.find(b);
+
+      if (this.childrenMap().get(rentA).size() > this.childrenMap().get(this.find(b)).size()) {
+        for (Vertex v : this.childrenMap().get(rentB)) {
+          this.parentMap().put(v, rentA);
+          this.childrenMap().get(rentA).add(v);
+        }
+        this.childrenMap().remove(rentB);
+      } else {
+        for (Vertex v : this.childrenMap().get(rentA)) {
+          this.parentMap().put(v, rentB);
+          this.childrenMap().get(rentB).add(v);
+        }
+        this.childrenMap().remove(rentA);
+      }
+    }
+
+    /**
+     * To get the parent to children map of this {@link UnionFind}
+     * @return the parent to children map of this {@link UnionFind}
+     */
+    Map<Vertex, List<Vertex>> childrenMap() {
+      return this.childrenMap;
+    }
+
+    /**
+     * To get the child to parent map of this {@link UnionFind}
+     * @return the child to parent map of this {@link UnionFind}
+     */
+    Map<Vertex, Vertex> parentMap() {
+      return this.parentMap;
+    }
+
+    /**
+     * To make the cluster in the form of a group of {@link Vertex}s
+     * @return a cluster in the form of a group of {@link Vertex}s
+     */
+    public List<Group> makeClusters() {
+      final Map<Vertex, List<Vertex>> map = new HashMap<>();
+      final List<Group> cluster = new ArrayList<>();
+
+      for (Vertex v : this.parentMap().keySet()) {
+        Vertex rent = this.find(v);
+        if (map.containsKey(rent)) {
+          map.get(rent).add(v);
+        } else {
+          map.put(rent, new ArrayList<>(Collections.singletonList(v)));
+        }
+      }
+
+      for(Vertex each : map.keySet()){
+        Group a = new BasicGroup();
+        final List<Vertex> vertices = map.get(each);
+        for(Vertex eachV : vertices){
+          final Document doc = eachV.data();
+          a.add(doc);
+        }
+
+        cluster.add(a);
+
+      }
+
+      return cluster;
+    }
+  }
+
+  /**
+   * @author Huascar Sanchez
+   */
+  final class Kruskal {
+    /**
+     * To create a MST from a given {@link UndirectedGraph}
+     * @param graph the given {@link UndirectedGraph}
+     * @return a MST in the from of a {@link UndirectedGraph}
+     */
+    static UndirectedGraph run(UndirectedGraph graph) {
+      final UnionFind uf = new UnionFind();
+      final List<Edge> edges = new ArrayList<>();
+
+      graph.vertexList().forEach(uf::create);
+      graph.edgeList().stream().filter(e -> uf.find(e.start()) != uf.find(e.end()))
+        .forEach(e -> {
+          edges.add(e);
+          uf.union(e.start(), e.end());
+        });
+
+
+      return new UndirectedGraph(graph.vertexList(), edges);
+    }
+  }
+
+
   abstract class Kmeans implements Magnet <Groups, Word> {
-    static boolean equals(List<Group> a, List<Group> b){
+    static boolean equals(List<VectorGroup> a, List<VectorGroup> b){
       return ImmutableMultiset.copyOf(a).equals(ImmutableMultiset.copyOf(b));
     }
   }
@@ -117,14 +291,14 @@ public interface Grouping {
       );
 
       // build initial clusters
-      final List<Group> clusters = new ArrayList<>();
+      final List<VectorGroup> clusters = new ArrayList<>();
       for(int i = 0; i < numGroups; i++){
-        final Group cluster = new GroupImpl();
+        final VectorGroup cluster = new VectorGroupImpl();
         cluster.add(initialClusters.get(i), wordToMatrix.get(words.get(i)));
         clusters.add(cluster);
       }
 
-      final List<Group> prevClusters = new ArrayList<>();
+      final List<VectorGroup> prevClusters = new ArrayList<>();
 
       while(true){
         int i; for (i = 0; i < numGroups; i++) {
@@ -186,14 +360,14 @@ public interface Grouping {
       );
 
       // build initial clusters
-      final List<Group> clusters = new ArrayList<>();
+      final List<VectorGroup> clusters = new ArrayList<>();
       for(int i = 0; i < numGroups; i++){
-        final Group cluster = new GroupImpl();
+        final VectorGroup cluster = new VectorGroupImpl();
         cluster.add(initialClusters.get(i), documents.get(docList.get(i)));
         clusters.add(cluster);
       }
 
-      final List<Group> prevClusters = new ArrayList<>();
+      final List<VectorGroup> prevClusters = new ArrayList<>();
       while(true){
         int i; for (i = 0; i < numGroups; i++) {
           clusters.get(i).computeCenter();
@@ -234,9 +408,6 @@ public interface Grouping {
   }
 
 
-  /**
-   * Group holding a set of similar words (similar by some metric value).
-   */
   interface Group extends Iterable <Object> {
 
     /**
@@ -253,6 +424,81 @@ public interface Grouping {
     static <I> List<I> items(Group group, Class<I> klass){
       return group.itemList().stream()
         .map(klass::cast).collect(Collectors.toList());
+    }
+
+    /**
+     * Automatically cast the items in the group to their correct type. It will fail fast
+     * if trying to cast an item to an incorrect type.
+     *
+     * @param groups formed groups of items
+     * @param klass target type
+     * @param <I> item type
+     * @return a new list of items; items were cast to their correct type.
+     * @throws ClassCastException if trying to cast an object to a subclass of which it is
+     *  not an instance.
+     */
+    static <I> Group merge(Class<I> klass, Groups groups){
+      final List<I> all = new ArrayList<>();
+      for(Group eachGroup : groups){
+        if(Objects.isNull(eachGroup)) continue;
+
+        all.addAll(Group.items(eachGroup, klass));
+
+      }
+
+      final BasicGroup group = new BasicGroup();
+      group.itemList().addAll(all);
+      return group;
+    }
+
+    /**
+     * Adds an object to this group.
+     *
+     * @param item item to add
+     */
+    void add(Object item);
+
+    /**
+     * Removes the item from this group.
+     *
+     * @param item item to remove
+     */
+    void remove(Object item);
+
+    /**
+     * @return list of items in group
+     */
+    List<Object> itemList();
+
+    /**
+     * @return true if the group is empty; false otherwise.
+     */
+    default boolean isEmpty() {
+      return itemList().isEmpty();
+    }
+
+
+    @Override default Iterator<Object> iterator() {
+      return itemList().iterator();
+    }
+  }
+
+
+  /**
+   * Group holding a set of similar words (similar by some vector-based metric).
+   */
+  interface VectorGroup extends Group {
+    /**
+     * Adds an item to this group.
+     *
+     * @param item item to add
+     */
+    default void add(Object item){
+      if(!matrixMap().containsKey(item)){
+        throw new IllegalStateException("Unable to find item in matrix map");
+      }
+
+      itemList().add(item);
     }
 
     /**
@@ -285,28 +531,9 @@ public interface Grouping {
     Matrix center();
 
     /**
-     * @return list of items in group
+     * @return the current matrix map.
      */
-    List<Object> itemList();
-
-    /**
-     * @return true if the group is empty; false otherwise.
-     */
-    default boolean isEmpty() {
-      return itemList().isEmpty();
-    }
-
-
-    @Override default Iterator<Object> iterator() {
-      return itemList().iterator();
-    }
-
-    /**
-     * Removes the item from this group.
-     *
-     * @param item item to remove
-     */
-    void remove(Object item);
+    Map<Object, Matrix> matrixMap();
 
     /**
      * Gets an item's vector.
@@ -317,25 +544,77 @@ public interface Grouping {
     Matrix vector(Object item);
   }
 
+  class BasicGroup implements Group {
+    final List<Object> items;
+
+    BasicGroup(){
+      this.items = new LinkedList<>();
+    }
+
+    @Override public void add(Object item) {
+      if(Objects.isNull(item)) return;
+      itemList().add(item);
+    }
+
+    @Override public boolean equals(Object obj) {
+      if(!(obj instanceof Group)) return false;
+      final Group objGroup = (Group) obj;
+      return objGroup.itemList().equals(itemList());
+    }
+
+    @Override public int hashCode() {
+      return 31 * itemList().hashCode();
+    }
+
+    @Override public void remove(Object item) {
+      if(Objects.isNull(item)) return;
+      itemList().remove(item);
+    }
+
+    @Override public List<Object> itemList() {
+      return items;
+    }
+
+    @Override public String toString() {
+      return itemList().toString();
+    }
+  }
+
 
   /**
    * A Group of words attracted by some magnet strategy.
    */
-  class GroupImpl implements Group {
+  class VectorGroupImpl implements VectorGroup {
     final Map<Object, Matrix> matrixMap;
-    final List<Object>        items;
+    final Group               impl;
 
     Matrix centroid;
 
-    GroupImpl(){
+    VectorGroupImpl(Group impl){
       this.matrixMap = new LinkedHashMap<>();
-      this.items     = new LinkedList<>();
+
       this.centroid  = null;
+      this.impl      = Objects.requireNonNull(impl);
+    }
+
+    VectorGroupImpl(){
+      this(new BasicGroup());
     }
 
     @Override public void add(Object item, Matrix vector) {
-      matrixMap.put(item, vector);
-      itemList().add(item);
+      if(!Objects.isNull(vector)){
+        matrixMap.put(item, vector);
+      }
+
+      add(item);
+    }
+
+    @Override public boolean equals(Object obj) {
+      return obj instanceof VectorGroup && impl.equals(obj);
+    }
+
+    @Override public int hashCode() {
+      return impl.hashCode();
     }
 
     @Override public double proximity(Matrix toDoc) {
@@ -347,16 +626,16 @@ public interface Grouping {
     }
 
     @Override public Matrix computeCenter(){
-      if(matrixMap.isEmpty()) return null;
+      if(matrixMap().isEmpty()) return null;
 
-      final Matrix matrix = matrixMap.get(items.get(0));
+      final Matrix matrix = matrixMap().get(itemList().get(0));
       centroid = new Matrix(matrix.getRowDimension(), matrix.getColumnDimension());
 
-      for(Object each : matrixMap.keySet()){
-        centroid = centroid.plus(matrixMap.get(each));
+      for(Object each : matrixMap().keySet()){
+        centroid = centroid.plus(matrixMap().get(each));
       }
 
-      centroid = centroid.times(1.0D / matrixMap.size());
+      centroid = centroid.times(1.0D / matrixMap().size());
 
       return centroid;
     }
@@ -365,8 +644,12 @@ public interface Grouping {
       return centroid;
     }
 
+    @Override public Map<Object, Matrix> matrixMap() {
+      return matrixMap;
+    }
+
     @Override public void remove(Object item) {
-      matrixMap.remove(item);
+      if(matrixMap().containsKey(item)) matrixMap().remove(item);
       itemList().remove(item);
     }
 
@@ -375,7 +658,7 @@ public interface Grouping {
     }
 
     @Override public List<Object> itemList() {
-      return items;
+      return impl.itemList();
     }
 
     @Override public String toString() {
@@ -388,7 +671,7 @@ public interface Grouping {
     final List<Group>  groups;
     final Index        index;
 
-    private Groups(List<Group> groups, Index index){
+    private Groups(List<? extends Group> groups, Index index){
       this.index  = index;
       this.groups = groups.stream()
         .filter(c -> !c.isEmpty())
@@ -417,7 +700,12 @@ public interface Grouping {
       return of(Collections.emptyList(), new Index());
     }
 
-    static Groups of(List<Group> groups, Index index){
+
+    static Groups of(List<? extends Group> groups){
+      return of(groups, null);
+    }
+
+    static Groups of(List<? extends Group> groups, Index index){
       return new Groups(groups, index);
     }
 
