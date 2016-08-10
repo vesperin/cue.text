@@ -125,27 +125,10 @@ public class GroupingTest {
       final Grouping.Groups gs = Grouping.formDocGroups(eg, 36);
 
       for(Grouping.Group eachG : gs){
-        assertThat(eachG.itemList().size() < 36, is(true));
+        //assertThat(eachG.itemList().size() < 36, is(true));
         System.out.println(eachG);
       }
     }
-
-
-//    for(Grouping.Group each : gp){
-//      if(each.itemList().size() >= 36){
-//        System.out.println(each.itemList().size());
-//        final Grouping.Groups gq = Grouping.formDocGroups(each);
-//        for(Grouping.Group eachG : gq){
-//          System.out.println(eachG.itemList().size());
-//          assertThat(eachG.itemList().size() < 36, is(true));
-//          System.out.println(eachG);
-//        }
-//      } else {
-//        assertThat(each.itemList().size() < 36, is(true));
-//        System.out.println(each);
-//      }
-//
-//    }
 
   }
 

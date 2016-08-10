@@ -2,12 +2,15 @@ package com.vesperin.text;
 
 import Jama.Matrix;
 import com.google.common.collect.ImmutableMultiset;
+import com.google.common.primitives.Doubles;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
 import com.vesperin.text.graphs.Edge;
 import com.vesperin.text.graphs.UndirectedGraph;
 import com.vesperin.text.graphs.Vertex;
 import com.vesperin.text.utils.Jamas;
+import com.vesperin.text.utils.Similarity;
+import com.vesperin.text.utils.Strings;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -263,12 +266,45 @@ public interface Grouping {
 
       for (Vertex v : this.parentMap().keySet()) {
         Vertex rent = this.find(v);
-        if (map.containsKey(rent)) {
+        if (map.containsKey(rent) ) {
           map.get(rent).add(v);
         } else {
           map.put(rent, new ArrayList<>(Collections.singletonList(v)));
         }
       }
+
+      final List<Vertex> entries = map.entrySet().stream()
+        .filter(e -> e.getValue().size() == 1)
+        .map(Map.Entry::getKey)
+        .collect(Collectors.toList());
+
+
+      for(Vertex orphan : entries){
+        Vertex max = null;
+        for(Vertex parent : map.keySet()){
+          if(Doubles.compare(distance(orphan, parent), 0.5D) < 0)
+            continue;
+          if(Doubles.compare(distance(orphan, parent), distance(orphan, orphan)) == 0)
+            continue;
+
+          if(!shareWords(orphan, parent)) continue;
+
+          if(max == null){
+            max = parent;
+          } else {
+            if(Doubles.compare(distance(orphan, max), distance(orphan, parent)) < 0){
+              max = parent;
+            }
+          }
+        }
+
+        if(max == null) continue;
+
+        map.get(orphan);
+        map.get(max).add(orphan);
+        map.remove(orphan);
+      }
+
 
       for(Vertex each : map.keySet()){
         Group a = new BasicGroup();
@@ -283,6 +319,19 @@ public interface Grouping {
       }
 
       return cluster;
+    }
+
+    private static boolean shareWords(Vertex a, Vertex b){
+      final Set<String> labels = Strings.intersect(
+        Strings.splits(a.data().shortName()),
+        Strings.splits(b.data().shortName())
+      );
+
+      return !labels.isEmpty();
+    }
+
+    private static double distance(Vertex a, Vertex b){
+      return 1.0D - Similarity.lcsSimilarity(a.data().shortName(), b.data().shortName());
     }
   }
 
@@ -299,15 +348,22 @@ public interface Grouping {
       final UnionFind uf = new UnionFind();
       final List<Edge> edges = new ArrayList<>();
 
-      graph.vertexList().forEach(uf::create);
-      graph.edgeList().stream().filter(e -> !uf.connected(e.start(), e.end()))
+      final List<Edge> filtered = graph.edgeList().stream().filter(e -> Doubles.compare(e.weight(), 0.7D) >= 0).collect(Collectors.toList());
+
+      final UndirectedGraph pre = new UndirectedGraph(
+        graph.vertexList(),
+        filtered
+      );
+
+      pre.vertexList().forEach(uf::create);
+      pre.edgeList().stream().filter(e -> !uf.connected(e.start(), e.end()))
         .forEach(e -> {
           edges.add(e);
           uf.union(e.start(), e.end());
         });
 
 
-      return new UndirectedGraph(graph.vertexList(), edges);
+      return new UndirectedGraph(pre.vertexList(), edges);
     }
   }
 

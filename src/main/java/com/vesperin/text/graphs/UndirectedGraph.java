@@ -1,13 +1,14 @@
 package com.vesperin.text.graphs;
 
+import com.google.common.primitives.Doubles;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.utils.Similarity;
 import com.vesperin.text.utils.Strings;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * @author Huascar Sanchez
@@ -71,17 +72,18 @@ public class UndirectedGraph {
 
         // filter to reduce search space
         // (distance, k-words)-filter.
-        if(Double.compare(distance, 0.4D) >= 0 || labels.isEmpty()) continue;
+        if(Double.compare(distance, 0.45D) >= 0 && labels.size() < 2) continue;
 
-        final Edge e = new Edge(distance, a, b);
+        final Edge e = new Edge((1.0D - distance), a, b);
         labels.forEach(e::labels);
 
         edges.add(e);
       }
     }
 
-    Collections.sort(edges);
-    return edges;
+    return edges.stream()
+      .sorted((a, b) -> Doubles.compare(b.weight(), a.weight()))
+      .collect(Collectors.toList());
   }
 
   private static List<Vertex> makeVertices(Set<Document> documents){
