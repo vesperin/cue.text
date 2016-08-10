@@ -37,6 +37,7 @@ public class Noun {
 
   public String singularOf(String word){
     if(grammar.isUncountable(word)) return word;
+    if(grammar.isUnchanged(word)) return word;
     return applyRule(grammar.singularList(), word);
   }
 

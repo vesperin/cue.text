@@ -51,7 +51,7 @@ public class UndirectedGraph {
    * @param vertices the given {@link Vertex}s
    * @return a sorted list of {@link Edge}s
    */
-  public static List<Edge> makeEdges(List<Vertex> vertices) {
+  private static List<Edge> makeEdges(List<Vertex> vertices) {
     final List<Edge> edges = new ArrayList<>();
 
     for (int i = 0; i < vertices.size(); i++) {
@@ -63,12 +63,15 @@ public class UndirectedGraph {
         final double distance = distance(a, b);
         // skip same node
         if(Double.isNaN(distance) || Double.compare(distance, 0D) == 0)   continue;
-        if(Double.compare(distance, 0.5D) >= 0) continue;
 
         final Set<String> labels = Strings.intersect(
           Strings.splits(a.data().shortName()),
           Strings.splits(b.data().shortName())
         );
+
+        // filter to reduce search space
+        // (distance, k-words)-filter.
+        if(Double.compare(distance, 0.4D) >= 0 || labels.isEmpty()) continue;
 
         final Edge e = new Edge(distance, a, b);
         labels.forEach(e::labels);

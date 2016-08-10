@@ -27,10 +27,6 @@ public class Edge implements Comparable <Edge> {
     this.labels = new LinkedHashSet<>();
   }
 
-  public static boolean sameEdge(Edge e, Vertex a, Vertex b){
-    return Objects.equals(e, new Edge(e.weight(), a, b));
-  }
-
   void labels(String... values){
     for(String each : values){
       if(!Objects.isNull(each) && !each.isEmpty()){

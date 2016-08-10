@@ -36,6 +36,15 @@ public class NounTest {
 
   }
 
+  @Test public void testPluralToSingularRulesUnchanged() throws Exception {
+    final String criteria = "criteria";
+
+    final String singular  = toSingular("criteria");
+
+    assertEquals(criteria, singular); // should remain unchanged
+
+  }
+
   @Test public void testIsPlural() throws Exception {
     assertTrue(noun.isPlural("nouns"));
   }

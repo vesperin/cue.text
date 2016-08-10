@@ -10,6 +10,7 @@ import com.vesperin.text.graphs.Vertex;
 import com.vesperin.text.utils.Jamas;
 
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
@@ -39,6 +40,42 @@ public interface Grouping {
    */
   static Groups formDocGroups(List<Word> selectedWords){
     return new GroupingImpl().docGroups(selectedWords);
+  }
+
+  /**
+   * Assigns documents in an existing group to a new set of groups.
+   *
+   * @param selectedGroup clustered documents.
+   * @param cap max size of each group.
+   * @return a new Groups object.
+   */
+  static Groups formDocGroups(Group selectedGroup, int cap){
+    if(selectedGroup.size() < cap) return Groups.of(Collections.singletonList(selectedGroup));
+
+    final Predicate<Group> lt  = g -> g.size() < cap;
+    final Predicate<Group> gte = g -> g.size() >= cap;
+
+    final Groups gs = new GroupingImpl().reGroups(selectedGroup);
+
+    final List<Group> smallerThanCap = gs.groupList().stream()
+      .filter(lt)
+      .collect(Collectors.toList());
+
+    final List<Group> greaterThanCap = gs.groupList().stream()
+      .filter(gte)
+      .collect(Collectors.toList());
+
+    for(Group each : greaterThanCap){
+      final Groups regroups = formDocGroups(each);
+
+      for(Group regroup : regroups){
+        smallerThanCap.add(regroup);
+      }
+
+    }
+
+
+    return Groups.of(smallerThanCap);
   }
 
 
@@ -117,7 +154,6 @@ public interface Grouping {
 
     @Override public Groups apply(List<Document> items) {
 
-
       final Set<Document> documents = items.stream().collect(Collectors.toSet());
 
       final UndirectedGraph graph = new UndirectedGraph(documents);
@@ -169,6 +205,10 @@ public interface Grouping {
       return this.parentMap().get(v);
     }
 
+    boolean connected(Vertex a, Vertex b){
+      return find(a) == find(b);
+    }
+
     /**
      * To union two given {@link Vertex}s in this {@link UnionFind}
      * @param a first given {@link Vertex}
@@ -177,6 +217,9 @@ public interface Grouping {
     void union(Vertex a, Vertex b) {
       Vertex rentA = this.find(a);
       Vertex rentB = this.find(b);
+
+      if(Objects.equals(rentA, rentB)) return;
+
 
       if (this.childrenMap().get(rentA).size() > this.childrenMap().get(this.find(b)).size()) {
         for (Vertex v : this.childrenMap().get(rentB)) {
@@ -189,6 +232,7 @@ public interface Grouping {
           this.parentMap().put(v, rentB);
           this.childrenMap().get(rentB).add(v);
         }
+
         this.childrenMap().remove(rentA);
       }
     }
@@ -256,7 +300,7 @@ public interface Grouping {
       final List<Edge> edges = new ArrayList<>();
 
       graph.vertexList().forEach(uf::create);
-      graph.edgeList().stream().filter(e -> uf.find(e.start()) != uf.find(e.end()))
+      graph.edgeList().stream().filter(e -> !uf.connected(e.start(), e.end()))
         .forEach(e -> {
           edges.add(e);
           uf.union(e.start(), e.end());
@@ -481,6 +525,13 @@ public interface Grouping {
     @Override default Iterator<Object> iterator() {
       return itemList().iterator();
     }
+
+    /**
+     * @return size of the group.
+     */
+    default int size(){
+      return itemList().size();
+    }
   }
 
 
@@ -547,7 +598,7 @@ public interface Grouping {
   class BasicGroup implements Group {
     final List<Object> items;
 
-    BasicGroup(){
+    public BasicGroup(){
       this.items = new LinkedList<>();
     }
 
@@ -711,6 +762,10 @@ public interface Grouping {
 
     @Override public Iterator<Group> iterator() {
       return groupList().iterator();
+    }
+
+    public int size(){
+      return groupList().size();
     }
 
     @Override public String toString() {

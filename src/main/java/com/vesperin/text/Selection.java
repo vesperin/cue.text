@@ -211,7 +211,6 @@ public interface Selection {
       .map(w -> Noun.get().isPlural(w.element()) ? WordImpl.from(Noun.get().singularOf(w.element()), w.value(), w.container()) : w )
       .collect(Collectors.toList());
 
-    System.out.println(result);
     return result;
   }
 
@@ -397,7 +396,7 @@ public interface Selection {
     final String filename;
     final String method;
 
-    DocumentImpl(int id, String container){
+    public DocumentImpl(int id, String container){
       this.id = id;
 
       if(!Objects.isNull(container) && container.contains("#")){
