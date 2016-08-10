@@ -53,7 +53,7 @@ public class Index {
    * @param words flatten Word List.
    * @return a new Index object.
    */
-  static Index createIndex(List<Word> words){
+  public static Index createIndex(List<Word> words){
     final Index index = new Index();
     index.index(words);
     index.createWordDocMatrix();
