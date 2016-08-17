@@ -5,9 +5,7 @@ import com.google.common.collect.ImmutableMultiset;
 import com.google.common.primitives.Doubles;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
-import com.vesperin.text.graphs.Edge;
-import com.vesperin.text.graphs.UndirectedGraph;
-import com.vesperin.text.graphs.Vertex;
+import com.vesperin.text.nouns.Noun;
 import com.vesperin.text.utils.Jamas;
 import com.vesperin.text.utils.Similarity;
 import com.vesperin.text.utils.Strings;
@@ -16,6 +14,7 @@ import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import static com.vesperin.text.Grouping.Graph.singularShortName;
 import static java.util.stream.Collectors.toList;
 
 /**
@@ -28,7 +27,7 @@ public interface Grouping {
   /**
    * Assigns words to specific groups.
    *
-   * @param selectedWords relevant words list. See {@link #formWordGroups(List)}
+   * @param selectedWords relevant words list.
    * @return a new Groups object.
    */
   static Groups formWordGroups(List<Word> selectedWords){
@@ -153,14 +152,12 @@ public interface Grouping {
     R apply(List<I> items);
   }
 
-  class UnionFindClustering implements Magnet <Groups, Document> {
+  final class UnionFindClustering implements Magnet <Groups, Document> {
 
     @Override public Groups apply(List<Document> items) {
 
-      final Set<Document> documents = items.stream().collect(Collectors.toSet());
-
-      final UndirectedGraph graph = new UndirectedGraph(documents);
-      UndirectedGraph MST = Kruskal.run(graph);
+      final Graph graph = new Graph(items);
+      Graph MST = Kruskal.mst(graph);
 
       final List<Group> clusters = makeClusters(MST);
 
@@ -169,14 +166,15 @@ public interface Grouping {
     }
 
 
-    static List<Group> makeClusters(UndirectedGraph graph){
-      final List<Edge> edges = graph.edgeList().stream().collect(Collectors.toList());
-      final UnionFind uf = new UnionFind();
+    static List<Group> makeClusters(Graph graph){
+      final List<Edge> edges = graph.edgeList().stream()
+        .collect(Collectors.toList());
 
+      final UnionFind uf = new UnionFind();
       graph.vertexList().forEach(uf::create);
 
       for (Edge e : edges) {
-        uf.union(e.start(), e.end());
+        uf.union(e.from(), e.to());
       }
 
       return uf.makeClusters();
@@ -186,54 +184,65 @@ public interface Grouping {
   }
 
   final class UnionFind {
-    private final Map<Vertex, List<Vertex>> childrenMap = new HashMap<>();
-    private final Map<Vertex, Vertex>       parentMap   = new HashMap<>();
+    private final Map<Document, List<Document>> childrenMap;
+    private final Map<Document, Document>       parentMap;
 
     /**
-     * Used to create a childrenMap for the given {@link Vertex} and a parentMap
-     * for the given {@link Vertex} in this {@link UnionFind}
-     * @param v the given {@link Vertex}
+     * Creates a UnionFind instance.
      */
-    void create(Vertex v) {
+    UnionFind(){
+      childrenMap = new HashMap<>();
+      parentMap   = new HashMap<>();
+    }
+
+    /**
+     * Used to create a childrenMap for the given {@link Document} and a parentMap
+     * for the given {@link Document} in this {@link UnionFind}
+     * @param v the given {@link Document}
+     */
+    void create(Document v) {
       this.childrenMap().put(v, new ArrayList<>(Collections.singletonList(v)));
       this.parentMap().put(v, v);
     }
 
     /**
-     * To find the parent of the given {@link Vertex} in this {@link UnionFind}
-     * @param v the given {@link Vertex}
-     * @return the parent of the given {@link Vertex} in this {@link UnionFind}
+     * To find the parent of the given {@link Document} in this {@link UnionFind}
+     * @param v the given {@link Document}
+     * @return the parent of the given {@link Document} in this {@link UnionFind}
      */
-    Vertex find(Vertex v) {
+    Document find(Document v) {
       return this.parentMap().get(v);
     }
 
-    boolean connected(Vertex a, Vertex b){
+    boolean connected(Document a, Document b){
       return find(a) == find(b);
     }
 
     /**
-     * To union two given {@link Vertex}s in this {@link UnionFind}
-     * @param a first given {@link Vertex}
-     * @param b second given {@link Vertex}
+     * To union two given {@link Document}s in this {@link UnionFind}
+     * @param a first given {@link Document}
+     * @param b second given {@link Document}
      */
-    void union(Vertex a, Vertex b) {
-      Vertex rentA = this.find(a);
-      Vertex rentB = this.find(b);
+    void union(Document a, Document b) {
+      Document rentA = this.find(a);
+      Document rentB = this.find(b);
 
       if(Objects.equals(rentA, rentB)) return;
 
-
       if (this.childrenMap().get(rentA).size() > this.childrenMap().get(this.find(b)).size()) {
-        for (Vertex v : this.childrenMap().get(rentB)) {
+        for (Document v : this.childrenMap().get(rentB)) {
+
           this.parentMap().put(v, rentA);
           this.childrenMap().get(rentA).add(v);
         }
+
         this.childrenMap().remove(rentB);
       } else {
-        for (Vertex v : this.childrenMap().get(rentA)) {
+        for (Document v : this.childrenMap().get(rentA)) {
+
           this.parentMap().put(v, rentB);
           this.childrenMap().get(rentB).add(v);
+
         }
 
         this.childrenMap().remove(rentA);
@@ -244,7 +253,7 @@ public interface Grouping {
      * To get the parent to children map of this {@link UnionFind}
      * @return the parent to children map of this {@link UnionFind}
      */
-    Map<Vertex, List<Vertex>> childrenMap() {
+    Map<Document, List<Document>> childrenMap() {
       return this.childrenMap;
     }
 
@@ -252,20 +261,20 @@ public interface Grouping {
      * To get the child to parent map of this {@link UnionFind}
      * @return the child to parent map of this {@link UnionFind}
      */
-    Map<Vertex, Vertex> parentMap() {
+    Map<Document, Document> parentMap() {
       return this.parentMap;
     }
 
     /**
-     * To make the cluster in the form of a group of {@link Vertex}s
-     * @return a cluster in the form of a group of {@link Vertex}s
+     * To make the cluster in the form of a group of {@link Document}s
+     * @return a cluster in the form of a group of {@link Document}s
      */
-    public List<Group> makeClusters() {
-      final Map<Vertex, List<Vertex>> map = new HashMap<>();
+    List<Group> makeClusters() {
+      final Map<Document, List<Document>> map = new HashMap<>();
       final List<Group> cluster = new ArrayList<>();
 
-      for (Vertex v : this.parentMap().keySet()) {
-        Vertex rent = this.find(v);
+      for (Document v : this.parentMap().keySet()) {
+        Document rent = this.find(v);
         if (map.containsKey(rent) ) {
           map.get(rent).add(v);
         } else {
@@ -273,26 +282,51 @@ public interface Grouping {
         }
       }
 
-      final List<Vertex> entries = map.entrySet().stream()
+      List<Document> entries = map.entrySet().stream()
         .filter(e -> e.getValue().size() == 1)
         .map(Map.Entry::getKey)
         .collect(Collectors.toList());
 
 
-      for(Vertex orphan : entries){
-        Vertex max = null;
-        for(Vertex parent : map.keySet()){
-          if(Doubles.compare(distance(orphan, parent), 0.5D) < 0)
-            continue;
-          if(Doubles.compare(distance(orphan, parent), distance(orphan, orphan)) == 0)
-            continue;
+      // first pass
+      updatesMap(entries, map);
 
-          if(!shareWords(orphan, parent)) continue;
+      entries = map.entrySet().stream()
+        .filter(e -> e.getValue().size() == 1)
+        .map(Map.Entry::getKey)
+        .collect(Collectors.toList());
 
-          if(max == null){
+
+      // second pass
+      updatesMap(entries, map);
+
+      for(Document each : map.keySet()){
+        Group a = new BasicGroup();
+        final List<Document> vertices = map.get(each);
+        vertices.forEach(a::add);
+
+        cluster.add(a);
+
+      }
+
+      return cluster;
+    }
+
+    private static void updatesMap(List<Document> entries, Map<Document, List<Document>> map){
+      for(Document orphan : entries){
+        Document max = null;
+
+        for(Document parent : map.keySet()){
+          if (skipPair(orphan, parent)) continue;
+
+          final Set<String> labels = Graph.sharedLabels(orphan, parent);
+
+          if(max == null && !labels.isEmpty()){
             max = parent;
           } else {
-            if(Doubles.compare(distance(orphan, max), distance(orphan, parent)) < 0){
+            if((Doubles.compare(distance(orphan, max), distance(orphan, parent)) < 0)
+              && !labels.isEmpty()){
+
               max = parent;
             }
           }
@@ -304,34 +338,251 @@ public interface Grouping {
         map.get(max).add(orphan);
         map.remove(orphan);
       }
+    }
+
+    private static boolean skipPair(Document orphan, Document parent) {
+      return ((Doubles.compare(distance(orphan, parent), 0.45D) < 0)
+        && !Graph.validScenario(orphan.shortName(), parent.shortName()))
+        || Doubles.compare(distance(orphan, parent), distance(orphan, orphan)) == 0;
+    }
 
 
-      for(Vertex each : map.keySet()){
-        Group a = new BasicGroup();
-        final List<Vertex> vertices = map.get(each);
-        for(Vertex eachV : vertices){
-          final Document doc = eachV.data();
-          a.add(doc);
+
+    private static double distance(Document a, Document b){
+      if(Objects.isNull(b)) return 0.0D;
+      return 1.0D - Similarity.lcSubstrScore(singularShortName(a.shortName()), singularShortName(b.shortName()));
+    }
+  }
+
+  /**
+   * Undirected graph.
+   */
+  final class Graph {
+    private final List<Document>  vertices;
+    private final List<Edge>      edges;
+
+    /**
+     * Constructs an {@link Graph}
+     *
+     * @param vertices the given {@link Document vertices}
+     */
+    Graph(List<Document> vertices) {
+      this.vertices = vertices;
+      this.edges    = makeEdges(this.vertices);
+    }
+
+    /**
+     * Constructs an {@link Graph}
+     *
+     * @param vertices the given {@link Document vertices}s
+     * @param edges the given {@link Edge}s
+     */
+    Graph(List<Document> vertices, List<Edge> edges) {
+      this.vertices = vertices;
+      this.edges    = edges;
+    }
+
+    /**
+     * Intersects shared words between vertices.
+     *
+     * @param a first vertex
+     * @param b second vertex
+     * @return intersecting words.
+     */
+    static Set<String> sharedLabels(Document a, Document b){
+      return Strings.intersect(
+        Strings.splits(singularShortName(a.shortName())),
+        Strings.splits(singularShortName(b.shortName()))
+      );
+    }
+
+    /**
+     * Ensures the short name of a document is singular.
+     *
+     * @param shortname document's short name
+     * @return the singular short name
+     */
+    static String singularShortName(String shortname){
+      return Noun.get().isPlural(shortname)
+        ? Noun.get().singularOf(shortname)
+        : shortname;
+    }
+
+    /**
+     * Creates a sorted list of {@link Edge}s
+     *
+     * @param vertices the given {@link Document vertices}
+     * @return a sorted list of {@link Edge}s
+     */
+    private static List<Edge> makeEdges(List<Document> vertices) {
+      final List<Edge> edges = new ArrayList<>();
+
+      for (int i = 0; i < vertices.size(); i++) {
+        for (int j = i + 1; j < vertices.size(); j++) {
+
+          final Document a = vertices.get(i);
+          final Document b = vertices.get(j);
+
+          final double distance = calculateLCSDistance(a, b);
+          // skip documents with same name
+          if(sameName(distance))   continue;
+
+          final Set<String> labels = sharedLabels(a, b);
+
+          // filter to reduce search space
+          // (distance, k-words)-filter.
+          if((Double.compare(distance, 0.45D) >= 0 && labels.size() < 2)
+            || !validScenario(a.shortName(), b.shortName()) || labels.isEmpty()) continue;
+
+          final Edge e = new Edge(a, b, (1.0D - distance));
+          labels.forEach(e::labels);
+
+          edges.add(e);
         }
-
-        cluster.add(a);
-
       }
 
-      return cluster;
+      return edges.stream()
+        .sorted((a, b) -> Doubles.compare(b.weight(), a.weight()))
+        .collect(Collectors.toList());
     }
 
-    private static boolean shareWords(Vertex a, Vertex b){
-      final Set<String> labels = Strings.intersect(
-        Strings.splits(a.data().shortName()),
-        Strings.splits(b.data().shortName())
-      );
-
-      return !labels.isEmpty();
+    static boolean validScenario(String child, String parent){
+      final Set<String> labels = Strings.intersect(Strings.splits(child), Strings.splits(parent));
+      return labels.size() == 1 && labels.contains(singularShortName(child));
     }
 
-    private static double distance(Vertex a, Vertex b){
-      return 1.0D - Similarity.lcsSimilarity(a.data().shortName(), b.data().shortName());
+    private static boolean sameName(double distance) {
+      return Double.isNaN(distance) || Double.compare(distance, 0D) == 0;
+    }
+
+
+    private static double calculateLCSDistance(Document a, Document b) throws IllegalStateException {
+      return Similarity.lcsDistanceScore(a.shortName(), b.shortName());
+    }
+
+    List<Edge> edgeList(){
+      return edges;
+    }
+
+    List<Document> vertexList(){
+      return vertices;
+    }
+
+
+  }
+
+  class Edge implements Comparable<Edge> {
+
+    private final Document    v;
+    private final Document    w;
+    private final double      weight;
+    private final Set<String> labels;
+
+    /**
+     * Initializes an edge between vertices <tt>v</tt> and <tt>w</tt> of
+     * the given <tt>weight</tt>.
+     *
+     * @param  v one vertex
+     * @param  w the other vertex
+     * @param  weight the weight of this edge
+     */
+    Edge(Document v, Document w, double weight) {
+      if (Double.isNaN(weight)) {
+        throw new IllegalArgumentException("Weight is NaN");
+      }
+
+      this.v      = v;
+      this.w      = w;
+      this.weight = weight;
+      this.labels = new HashSet<>();
+    }
+
+    @Override public boolean equals(Object o) {
+      if (this == o)
+        return true;
+      if (o == null || getClass() != o.getClass())
+        return false;
+
+      Edge edge = (Edge) o;
+
+      return Double.compare(edge.weight(), weight()) == 0 && !(from() != null ?
+        !from().equals(edge.from()) :
+        edge.from() != null) && !(to() != null ?
+        !to().equals(edge.to()) :
+        edge.to() != null);
+    }
+
+    @Override public int hashCode() {
+      int result;
+      long temp;
+      temp = Double.doubleToLongBits(weight());
+      result = (int) (temp ^ (temp >>> 32));
+      result = 31 * result + (from() != null ? from().hashCode() : 0);
+      result = 31 * result + (to() != null ? to().hashCode() : 0);
+      return result;
+    }
+
+    /**
+     * Returns the weight of this edge.
+     *
+     * @return the weight of this edge
+     */
+    double weight() {
+      return weight;
+    }
+
+    /**
+     * Returns either endpoint of this edge.
+     *
+     * @return either endpoint of this edge
+     */
+    Document from() {
+      return v;
+    }
+
+    /**
+     * Adds an array of unique labels to this edge.
+     * @param values an array of labels that can identify
+     *               this edge.
+     */
+    void labels(String... values){
+      for(String each : values){
+        if(!Objects.isNull(each) && !each.isEmpty()){
+          labels.add(each);
+        }
+      }
+    }
+
+    /**
+     * Returns the endpoint of this edge.
+     *
+     * @return the other endpoint of this edge
+     */
+    Document to() {
+      return w;
+    }
+
+    /**
+     * Compares two edges by weight.
+     * Note that <tt>compareTo()</tt> is not consistent with <tt>equals()</tt>,
+     * which uses the reference equality implementation inherited from <tt>Object</tt>.
+     *
+     * @param  that the other edge
+     * @return a negative integer, zero, or positive integer depending on whether
+     *         the weight of this is less than, equal to, or greater than the
+     *         argument edge
+     */
+    @Override public int compareTo(Edge that) {
+      return Double.compare(this.weight(), that.weight());
+    }
+
+    /**
+     * Returns a string representation of this edge.
+     *
+     * @return a string representation of this edge
+     */
+    @Override public String toString() {
+      return String.format("%s-%s %.5f", v.shortName(), w.shortName(), weight());
     }
   }
 
@@ -340,30 +591,33 @@ public interface Grouping {
    */
   final class Kruskal {
     /**
-     * To create a MST from a given {@link UndirectedGraph}
-     * @param graph the given {@link UndirectedGraph}
-     * @return a MST in the from of a {@link UndirectedGraph}
+     * Creates a minimum spanning tree (MST) from a given {@link Graph}
+     *
+     * @param graph the given {@link Graph}
+     * @return an MST in the form of a {@link Graph}
      */
-    static UndirectedGraph run(UndirectedGraph graph) {
+    static Graph mst(Graph graph) {
       final UnionFind uf = new UnionFind();
       final List<Edge> edges = new ArrayList<>();
 
-      final List<Edge> filtered = graph.edgeList().stream().filter(e -> Doubles.compare(e.weight(), 0.7D) >= 0).collect(Collectors.toList());
+      final List<Edge> filtered = graph.edgeList().stream()
+        .filter(e -> Doubles.compare(e.weight(), 0.7D) >= 0)
+        .collect(Collectors.toList());
 
-      final UndirectedGraph pre = new UndirectedGraph(
+      final Graph pre = new Graph(
         graph.vertexList(),
         filtered
       );
 
       pre.vertexList().forEach(uf::create);
-      pre.edgeList().stream().filter(e -> !uf.connected(e.start(), e.end()))
+      pre.edgeList().stream().filter(e -> !uf.connected(e.from(), e.to()))
         .forEach(e -> {
           edges.add(e);
-          uf.union(e.start(), e.end());
+          uf.union(e.from(), e.to());
         });
 
 
-      return new UndirectedGraph(pre.vertexList(), edges);
+      return new Graph(pre.vertexList(), edges);
     }
   }
 

@@ -4,17 +4,16 @@ import Jama.Matrix;
 import com.google.common.primitives.Doubles;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
+import com.vesperin.text.nouns.Noun;
+import com.vesperin.text.spelling.StopWords;
 import com.vesperin.text.utils.Jamas;
+import com.vesperin.text.utils.Strings;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static java.util.stream.Collectors.toConcurrentMap;
 
 /**
  * Query mixin
@@ -43,6 +42,17 @@ public interface Query {
    */
   static Result types(List<Document> docs, Index index){
     return createQuery().typeSearch(docs, index);
+  }
+
+  /**
+   * Search for frequently occurring labels in a list of documents with similar names.
+   *
+   * @param docs current list of documents
+   * @param stopWords updated set of stop words.
+   * @return a new query result object.
+   */
+  static Result labels(final List<Document> docs, Set<StopWords> stopWords){
+    return createQuery().labelsSearch(docs, stopWords);
   }
 
   /**
@@ -83,6 +93,44 @@ public interface Query {
     final Matrix          queryMatrix    = createQueryVector(keydocs, docList);
 
     return typeSearch(queryMatrix, index.wordList(), Jamas.tfidfMatrix(index.wordDocFrequency().transpose()));
+  }
+
+
+  /**
+   * Extracts most frequent labels in the list of documents. This method
+   * extracts labels from the qualifiedClassname.
+   *
+   * @param documents list of documents
+   * @param stopWords current set of stop words
+   * @return a list of matching labels.
+   */
+  default Result labelsSearch(List<Document> documents, Set<StopWords> stopWords){
+    // we don't accept plurals and stop words
+    final List<String> allStrings = documents.stream()
+      .flatMap(s -> Arrays.asList(Strings.splits(s.shortName())).stream())
+      .map(s -> Noun.get().isPlural(s) ? Noun.get().singularOf(s) : s)
+      .filter(s -> !StopWords.isStopWord(stopWords, s))
+      .collect(Collectors.toList());
+
+    // frequency calculation
+    final Map<String, Integer> scores = allStrings.stream()
+      .collect(toConcurrentMap(w -> w.toLowerCase(Locale.ENGLISH), w -> 1, Integer::sum));
+
+    // sort entries in ascending order
+    Stream<Map.Entry<String, Integer>> firstPass = scores.entrySet().stream()
+      .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()));
+
+    // if we are dealing with multiple documents, filter words
+    // whose frequency is 1
+    if(documents.size() > 1){
+      firstPass = firstPass.filter(e -> e.getValue() > 1);
+    }
+
+    final List<String> secondPass = firstPass.map(Map.Entry::getKey)
+      .filter(s -> s.length() > 3).sorted(String::compareTo)
+      .collect(Collectors.toList());
+
+    return Result.downcast(secondPass);
   }
 
   /**

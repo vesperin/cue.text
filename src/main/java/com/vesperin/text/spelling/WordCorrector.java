@@ -62,7 +62,7 @@ public enum WordCorrector implements Corrector {
   }
 
   public static float similarity(String word, String suggestion){
-    return Similarity.similarityScore(word, suggestion);
+    return Similarity.editDistanceScore(word, suggestion);
   }
 
   @Override public String correct(String word, float accuracy) {

@@ -17,7 +17,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -105,6 +107,23 @@ public class QueryTest {
       assertTrue(Result.items(result, Word.class).size() < 3);
 
       System.out.println(Document.names(docs) + ": " + result);
+    }
+  }
+
+  @Test public void testLabelExtraction() throws Exception {
+    final List<Document> documents = Docs.documents();
+
+    Grouping.Group g = new Grouping.BasicGroup();
+    documents.forEach(g::add);
+
+    final Grouping.Groups gp = Grouping.formDocGroups(g, 36);
+
+    for(Grouping.Group each : gp){
+      final List<Document> ds = Group.items(each, Document.class);
+      final Result result = Query.labels(ds, StopWords.all());
+
+      final List<String> names     = Document.names(ds);
+      System.out.println(names + " " + result);
     }
   }
 
