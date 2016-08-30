@@ -48,8 +48,14 @@ public class WordSelectionTest {
       Codebase.quickSort("QuickSort5")
     );
 
-    final List<Word> words = Selection.selects(code, Selection.inspectClassName(Collections.emptySet(), StopWords.all()));
-    assertThat(words.isEmpty(), is(false));
+    final List<Word> words = Selection.selects(
+      code,
+      Selection.inspectClassName(Collections.emptySet(),
+        StopWords.all())
+    );
+
+    // empty because all words are stop words
+    assertThat(words.isEmpty(), is(true));
   }
 
   @Test public void testTop2Words() throws Exception {

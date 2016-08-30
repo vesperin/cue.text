@@ -54,7 +54,7 @@ public class Strings {
    * @param stopWords words we should ignore.
    * @return a new sorted list of string elements.
    */
-  public static List<String> sortByTypicality(int k, List<String> club, final Set<String> stopWords){
+  public static List<String> typicalitySorting(int k, List<String> club, final Set<String> stopWords){
 
     if(club.size() < 2) return club;
 
@@ -75,7 +75,7 @@ public class Strings {
       final String si = pair.get(0);
       final String sj = pair.get(1);
 
-      double w = Similarity.editDistanceScore(si, sj);
+      double w = Similarity.lcSubstrScore(si, sj);
 
       double Tsi = T.get(si) + w;
       double Tsj = T.get(sj) + w;

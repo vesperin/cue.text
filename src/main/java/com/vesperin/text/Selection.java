@@ -110,8 +110,7 @@ public interface Selection {
    * @return a new list of relevant words
    */
   static List<Word> selects(int k, Set<Source> fromCode, WordCollection wordCollection){
-    final int topK = Math.min(Math.max(0, k), 150);
-    return new SelectionImpl().weightedWords(topK, fromCode, wordCollection);
+    return new SelectionImpl().weightedWords(k, fromCode, wordCollection);
   }
 
 
@@ -200,18 +199,21 @@ public interface Selection {
   default List<Word> weightedWords(int k, Set<Source> code, WordCollection wordCollection){
     final List<Word> words = from(flattenWordList(code, wordCollection), new WordByCompositeWeight());
     if(words.isEmpty()) return words;
-    final int topK = Math.min(Math.max(0, k), words.size());
-    return words.stream().limit(topK).collect(Collectors.toList());
+    final int topK = Math.min(Math.max(0, k), 150);
+
+    return slice(topK, words);
+  }
+
+  default List<Word> slice(int k, List<Word> words){
+    return words.stream().limit(k).collect(Collectors.toList());
   }
 
 
   static List<Word> cleansing(Set<StopWords> stopWords, List<Word> relevant){
-    final List<Word> result = relevant.stream()
+    return relevant.stream()
       .filter(w -> !Objects.isNull(w) && !StopWords.isStopWord(stopWords, w.element().toLowerCase(Locale.ENGLISH)))
       .map(w -> Noun.get().isPlural(w.element()) ? WordImpl.from(Noun.get().singularOf(w.element()), w.value(), w.container()) : w )
       .collect(Collectors.toList());
-
-    return result;
   }
 
 
@@ -385,6 +387,11 @@ public interface Selection {
     String path();
 
     /**
+     * @return the namespace of this document.
+     */
+    String namespace();
+
+    /**
      * @return the name at the end of the {@link #path()}.
      */
     String shortName();
@@ -395,17 +402,22 @@ public interface Selection {
     final int    id;
     final String filename;
     final String method;
+    final String namespace;
 
     public DocumentImpl(int id, String container){
       this.id = id;
 
+      int idx;
       if(!Objects.isNull(container) && container.contains("#")){
-        int idx = container.lastIndexOf("#");
-        this.filename = container.substring(0, idx);
-        this.method   = container.substring(idx + 1, container.length());
+        idx = container.lastIndexOf("#");
+        this.filename   = container.substring(0, idx);
+        this.method     = container.substring(idx + 1, container.length());
+        this.namespace  = container.substring(0, idx);
       } else {
+        idx = container.lastIndexOf(".");
         this.filename = container;
         this.method   = "";
+        this.namespace  = container.substring(0, idx);
       }
 
     }
@@ -431,6 +443,10 @@ public interface Selection {
 
     @Override public String path() {
       return filename;
+    }
+
+    @Override public String namespace() {
+      return namespace;
     }
 
     @Override public String shortName() {

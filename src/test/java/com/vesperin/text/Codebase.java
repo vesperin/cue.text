@@ -188,7 +188,7 @@ public class Codebase {
   }
 
 
-  private static Source createCode(String name, String... lines){
+  static Source createCode(String name, String... lines){
     return Source.from(name, String.join("\n", Arrays.asList(lines)));
   }
 }

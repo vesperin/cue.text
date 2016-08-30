@@ -12,7 +12,7 @@ import java.util.List;
 public class StringsTest {
   @Test public void testTypicalitySorting() throws Exception {
     final List<String> unsorted = Arrays.asList("Joint", "Joint", "Jo", "Sphere", "Sweep");
-    final List<String> sorted   = Strings.sortByTypicality(unsorted.size(), unsorted, ImmutableSet.of("foo"));
+    final List<String> sorted   = Strings.typicalitySorting(unsorted.size(), unsorted, ImmutableSet.of("foo"));
 
     System.out.println(sorted);
   }
