@@ -19,7 +19,6 @@ import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static com.google.common.primitives.Floats.compare;
 import static com.vesperin.text.spelling.Corrector.isNumber;
 
 /**
@@ -61,7 +60,7 @@ public enum WordCorrector implements Corrector {
     return Corrector.onlyConsonants(word);
   }
 
-  public static float similarity(String word, String suggestion){
+  public static double similarity(String word, String suggestion){
     return Similarity.editDistanceScore(word, suggestion);
   }
 
@@ -88,7 +87,7 @@ public enum WordCorrector implements Corrector {
         if(e3.isPresent()) winners.add(e3.get());
 
         final Optional<String> winner = winners.stream().max(
-          (a, b) -> compare(similarity(word, a), similarity(word, b))
+          (a, b) -> Double.compare(similarity(word, a), similarity(word, b))
         );
 
         if(winner.isPresent()) return winner.get();

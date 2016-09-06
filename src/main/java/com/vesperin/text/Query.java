@@ -41,6 +41,7 @@ public interface Query {
    * @return a new query result object.
    */
   static Result types(List<Document> docs, Index index){
+    Objects.requireNonNull(index);
     return createQuery().typeSearch(docs, index);
   }
 

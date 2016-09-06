@@ -27,9 +27,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -44,7 +42,7 @@ import static java.util.stream.Collectors.toList;
  *
  * @author Huascar Sanchez
  */
-public interface Selection {
+public interface Selection extends Executable {
   /**
    * Creates a word collection strategy that introspects the class name in search for words.
    */
@@ -257,38 +255,6 @@ public interface Selection {
 
     shutdownService(service);
     return result;
-  }
-
-  static ExecutorService scaleExecutor(int scale){
-    final int cpus       = Runtime.getRuntime().availableProcessors();
-    scale                = scale > 10 ? 10 : scale;
-    final int maxThreads = ((cpus * scale) > 0 ? (cpus * scale) : 1);
-
-    return Executors.newFixedThreadPool(maxThreads);
-  }
-
-  static void shutdownService(ExecutorService service){
-    shutdownService(500, service);
-  }
-
-  static void shutdownService(long timeout, ExecutorService service){
-    // wait for all of the executor threads to finish
-    service.shutdown();
-
-    try {
-      if (!service.awaitTermination(timeout, TimeUnit.SECONDS)) {
-        // pool didn't terminate after the first try
-        service.shutdownNow();
-      }
-
-      if (!service.awaitTermination(timeout * 2, TimeUnit.SECONDS)) {
-        // pool didn't terminate after the second try
-        System.out.println("ERROR: executor service did not terminate after a second try.");
-      }
-    } catch (InterruptedException ex) {
-      service.shutdownNow();
-      Thread.currentThread().interrupt();
-    }
   }
 
 

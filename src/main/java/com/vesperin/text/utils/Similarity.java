@@ -1,6 +1,8 @@
 package com.vesperin.text.utils;
 
 import java.util.Objects;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 /**
  * @author Huascar Sanchez
@@ -11,35 +13,118 @@ public class Similarity {
   }
 
   /**
+   * Normalizes a distance value between two strings.
+   *
+   * @param distance distance between two strings
+   * @param s1 first string
+   * @param s2 second string
+   * @return normalized distance.
+   */
+  private static double normalize(int distance, String s1, String s2){
+    Objects.requireNonNull(s1);
+    Objects.requireNonNull(s2);
+
+    final int    length       = Math.max(s1.length(), s2.length());
+
+    if(length == 0) return 0.0D;
+
+    return (distance/(length * 1.0D));
+  }
+
+
+  /**
+   * Computes the normalized Damerau–Levenshtein edit distance
+   * (with adjacent transpositions) between two given strings.
+   *
+   * @param word first string
+   * @param suggestion second string
+   * @return normalized Damerau–Levenshtein edit distance
+   */
+  public static double damerauLevenshteinScore(String word, String suggestion){
+
+    final int editDistance = (damerauLevenshteinDistance(word, suggestion));
+
+    return 1.0D - normalize(editDistance, word, suggestion);
+  }
+
+  /**
+   * Computes the true Damerau–Levenshtein edit distance
+   * (with adjacent transpositions) between two given strings.<br><br>
+   *
+   * Based on <a href="http://en.wikipedia.org/wiki/Damerau–Levenshtein_distance">C# code from Wikipedia</a>.
+   *
+   * @param str1  First string being compared
+   * @param str2  Second string being compared
+   * @return      Edit distance between strings
+   */
+  public static int damerauLevenshteinDistance(String str1, String str2) {
+    // return fast if one or both strings is empty or null
+    if ((str1 == null) || str1.isEmpty()) {
+      if ((str2 == null) || str2.isEmpty()) {
+        return 0;
+      } else {
+        return str2.length();
+      }
+    } else if ((str2 == null) || str2.isEmpty()) {
+      return str1.length();
+    }
+
+    // split strings into string arrays
+    String[] stringArray1 = str1.split("");
+    String[] stringArray2 = str2.split("");
+
+    // initialize matrix values
+    int[][] matrix = new int[stringArray1.length + 2][stringArray2.length + 2];
+    int bound = stringArray1.length + stringArray2.length;
+    matrix[0][0] = bound;
+    for (int i = 0; i <= stringArray1.length; i++) {
+      matrix[i + 1][1] = i;
+      matrix[i + 1][0] = bound;
+    }
+    for (int j = 0; j <= stringArray2.length; j++) {
+      matrix[1][j + 1] = j;
+      matrix[0][j + 1] = bound;
+    }
+
+    // initialize dictionary
+    SortedMap<String, Integer> dictionary = new TreeMap<>();
+    for (String letter : (str1 + str2).split("")) {
+      if (!dictionary.containsKey(letter)) {
+        dictionary.put(letter, 0);
+      }
+    }
+
+    // compute edit distance between strings
+    for (int i = 1; i <= stringArray1.length; i++) {
+      int index = 0;
+      for (int j = 1; j <= stringArray2.length; j++) {
+        int i1 = dictionary.get(stringArray2[j - 1]);
+        int j1 = index;
+        if (stringArray1[i - 1].equals(stringArray2[j - 1])) {
+          matrix[i + 1][j + 1] = matrix[i][j];
+          index = j;
+        } else {
+          matrix[i + 1][j + 1] = Math.min(matrix[i][j], Math.min(matrix[i + 1][j], matrix[i][j + 1])) + 1;
+        }
+
+        matrix[i + 1][j + 1] = Math.min(matrix[i + 1][j + 1], matrix[i1][j1] + (i - i1 - 1) + 1 + (j - j1 - 1));
+      }
+
+      dictionary.put(stringArray1[i - 1], i);
+    }
+
+    return matrix[stringArray1.length + 1][stringArray2.length + 1];
+  }
+
+  /**
    * Calculates the editDistanceScore between two strings.
    * @param word original string
    * @param suggestion suggested string
    * @return editDistanceScore score.
    */
-  public static float editDistanceScore(String word, String suggestion){
-    return 1.0f - normalizedEditDistance(word, suggestion);
-  }
-
-  /**
-   * Calculates the normalized distance of a suggested correction. This is
-   * no longer a metric. Therefore, in order to calculate the editDistanceScore
-   * between two words we must subtract this value from 1 (see
-   * {@link #editDistanceScore(String, String)} method for details).
-   *
-   *
-   * @param word original word
-   * @param suggestion suggested correction for original word
-   * @return minimum score to use.
-   */
-  private static float normalizedEditDistance(String word, String suggestion){
-    Objects.requireNonNull(word);
-    Objects.requireNonNull(suggestion);
-
-
-    final float editDistance = (editDistance(word, suggestion)/1.0f);
-    final float length       = Math.max(word.length(),suggestion.length())/1.0f;
-
-    return (editDistance/length);
+  public static double editDistanceScore(String word, String suggestion){
+    final int distance = editDistance(word, suggestion);
+    return 1.0D - normalize(distance, word, suggestion);
   }
 
   /**
@@ -143,7 +228,7 @@ public class Similarity {
   }
 
   /* Returns length of longest common substring of X[0..m-1] and Y[0..n-1] */
-  private static int lcSubstr(String x, String y){
+  public static int lcSubstr(String x, String y){
     final char[] X = x.toCharArray();
     final char[] Y = y.toCharArray();
 

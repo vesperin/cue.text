@@ -45,6 +45,57 @@ public interface Grouping {
   }
 
   /**
+   * Assigns documents to specific groups using an MST approach.
+   *
+   * @param selectedWord most frequent words in some corpus.
+   * @return a new Groups object.
+   */
+  static Groups reformDocGroups(List<Word> selectedWord){
+    final Map<Group, Index> mapping = groupIndexMapping(selectedWord);
+    return reformDocGroups(mapping);
+  }
+
+  /**
+   * Creates a mapping from a group to its index.
+   *
+   * @param selectedWords words to create index and then group.
+   * @return a new mapping.
+   */
+  static Map<Group, Index> groupIndexMapping(List<Word> selectedWords){
+    final Index index = new Index();
+    index.index(selectedWords);
+    index.createWordDocMatrix();
+
+    final Group group = new BasicGroup();
+    index.docSet().forEach(group::add);
+
+    return Collections.singletonMap(group, index);
+  }
+
+  /**
+   * Assigns documents to specific groups using an MST approach.
+   *
+   * @param input a mapping from group to its index.
+   * @return a new Groups object.
+   */
+  static Groups reformDocGroups(Map<Group, Index> input){
+    Objects.requireNonNull(input);
+    if(input.isEmpty()) throw new IllegalArgumentException("Empty input");
+    if(input.size() > 1) throw new IllegalArgumentException("Not a singleton input");
+
+    final Map.Entry<Group, Index> entry = input.entrySet().stream()
+      .findFirst().orElse(null);
+
+    Objects.requireNonNull(entry);
+
+    final Group group   = entry.getKey();
+    final Index index   = entry.getValue();
+    final Groups groups = new GroupingImpl().reGroups(group);
+
+    return Groups.of(groups, index);
+  }
+
+  /**
    * Assigns documents in an existing group to a new set of groups.
    *
    * @param selectedGroup clustered documents.
@@ -142,6 +193,88 @@ public interface Grouping {
    */
   default <R, I> R groups(List<I> items, Magnet<R, I> strategy) {
     return strategy.apply(items);
+  }
+
+  /**
+   * Performs typicality-based group pruning against a set of groups.
+   *
+   * @param groups groups before pruning
+   * @return groups after pruning
+   */
+  static Groups refine(Groups groups){
+
+    final List<Group> clusters = new ArrayList<>();
+
+    for(Group each : groups){
+      final List<Document> documents = Group.items(each, Document.class);
+      final List<String>   elements  = documents.stream()
+        .map(Document::shortName)
+        .collect(Collectors.toList());
+
+      final List<String> words = elements.stream()
+        .map(Strings::splits)
+        .flatMap(Arrays::stream)
+        .collect(Collectors.toList());
+
+      final Map<String, Double> typicalityRegion = Strings.typicalityRegion(words);
+
+      final String typicalWord      = mostTypicalWord(typicalityRegion);
+      final double typicalWordScore = typicalityRegion.get(typicalWord);
+
+      // calculates the cluster radius
+      final double clusterRadius       = clusterRadius(typicalityRegion, 0.3);
+      final Group group = new Grouping.BasicGroup();
+      for(String eachElement : elements){
+
+        final String[]    splits  = Strings.splits(eachElement);
+        final Set<String> unique  = Strings.intersect(splits, splits);
+
+        for(String eachWord : unique){
+          final double score = Math.abs(typicalWordScore - typicalityRegion.get(eachWord));
+          if(Doubles.compare(clusterRadius, score) > 0){
+            group.add(eachElement);
+            break;
+          }
+        }
+      }
+
+      clusters.add(group);
+    }
+
+    return Groups.of(clusters);
+  }
+
+  static String mostTypicalWord(Map<String, Double> region){
+    return region.keySet().stream()
+      .sorted((a, b) -> Double.compare(region.get(a), region.get(b)))
+      .findFirst().orElse(null);
+  }
+
+//  static double clusterRadius(String typical, Set<String> words){
+//    final double k              = 2.0D * (words.size() * 1.0D);
+//    final double sumOfDistances = words.stream()
+//      .mapToDouble(
+//        s -> Math.pow(Similarity.damerauLevenshteinScore(typical, s), 2)
+//      ).sum();
+//
+//    return ((1/(k)) * sumOfDistances);
+//  }
+
+  static double clusterRadius(Map<String, Double> region, double weight){
+
+    final Set<String> words = region.keySet();
+
+    final double k  = (words.size() * 1.0);
+    final double mu = (words.stream().mapToDouble(s -> (region.get(s)))
+      .sum())/(words.size());
+
+    final double alpha = words.stream()
+      .mapToDouble(
+        s -> Math.pow((region.get(s) - mu), 2)
+      ).sum();
+
+
+    return weight * Math.sqrt((1/(k)) * alpha);
   }
 
   /**
@@ -1062,11 +1195,15 @@ public interface Grouping {
     }
 
 
-    static Groups of(List<? extends Group> groups){
+    public static Groups of(Groups groups, Index index){
+      return of(groups.groupList(), index);
+    }
+
+    public static Groups of(List<? extends Group> groups){
       return of(groups, null);
     }
 
-    static Groups of(List<? extends Group> groups, Index index){
+    public static Groups of(List<? extends Group> groups, Index index){
       return new Groups(groups, index);
     }
 

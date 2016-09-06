@@ -9,7 +9,6 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -27,6 +26,8 @@ public class GroupingTest {
   private static List<Word> words1;
   private static List<Word> words2;
 
+  private static List<Document> documents;
+
   @BeforeClass public static void setup(){
     final Selection extractor = new WordDistilling();
     final Set<Source> code = Sets.newHashSet(
@@ -41,6 +42,8 @@ public class GroupingTest {
     words  = extractor.weightedWords(100, code, Selection.inspectMethodBody(Collections.emptySet(), StopWords.all()));
     words1 = extractor.weightedWords(100, code, Selection.inspectClassName(Collections.emptySet(), StopWords.of(StopWords.ENGLISH, StopWords.JAVA)));
     words2 = extractor.weightedWords(100, code, Selection.inspectMethodName(Collections.emptySet(), StopWords.all()));
+
+    documents = Docs.documents();
   }
 
   @Test public void testWordGrouping() throws Exception {
@@ -106,8 +109,6 @@ public class GroupingTest {
   }
 
   @Test public void testClusteringWithUnionFind() throws Exception {
-    final List<Document> documents = Docs.documents();
-
     Grouping.Group g = new Grouping.BasicGroup();
     documents.forEach(g::add);
 
@@ -133,5 +134,7 @@ public class GroupingTest {
     words  = null;
     words1 = null;
     words2 = null;
+    documents.clear();
+    documents = null;
   }
 }
