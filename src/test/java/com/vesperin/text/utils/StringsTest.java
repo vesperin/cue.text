@@ -33,7 +33,8 @@ public class StringsTest {
     group.add(new Selection.DocumentImpl(3, "net.smert.jreactphysics3d.collision.shapes.BoxShape"));
     group.add(new Selection.DocumentImpl(4, "org.dyn4j.sandbox.SandboxBody"));
 
-    final Grouping.Groups groups = Grouping.refine(Grouping.Groups.of(Collections.singletonList(group)));
+    final Grouping.Groups oldGroups = Grouping.Groups.of(Collections.singletonList(group));
+    final Grouping.Groups groups    = Grouping.prune(oldGroups);
 
     assertTrue(!groups.isEmpty());
 

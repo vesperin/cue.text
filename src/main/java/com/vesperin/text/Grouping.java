@@ -11,6 +11,7 @@ import com.vesperin.text.utils.Similarity;
 import com.vesperin.text.utils.Strings;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -201,15 +202,16 @@ public interface Grouping {
    * @param groups groups before pruning
    * @return groups after pruning
    */
-  static Groups refine(Groups groups){
+  static Groups prune(Groups groups){
 
     final List<Group> clusters = new ArrayList<>();
 
     for(Group each : groups){
       final List<Document> documents = Group.items(each, Document.class);
-      final List<String>   elements  = documents.stream()
-        .map(Document::shortName)
-        .collect(Collectors.toList());
+      final Map<String, Document> mapping = documents.stream()
+        .collect(Collectors.toMap(Document::shortName, Function.identity()));
+
+      final List<String> elements = mapping.keySet().stream().collect(Collectors.toList());
 
       final List<String> words = elements.stream()
         .map(Strings::splits)
@@ -232,7 +234,7 @@ public interface Grouping {
         for(String eachWord : unique){
           final double score = Math.abs(typicalWordScore - typicalityRegion.get(eachWord));
           if(Doubles.compare(clusterRadius, score) > 0){
-            group.add(eachElement);
+            group.add(mapping.get(eachElement));
             break;
           }
         }
