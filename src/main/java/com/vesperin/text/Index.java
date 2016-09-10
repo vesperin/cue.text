@@ -5,6 +5,7 @@ import Jama.SingularValueDecomposition;
 import com.google.common.collect.Lists;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
+import com.vesperin.text.Selection.WordCollection;
 import com.vesperin.text.utils.Jamas;
 
 import java.util.HashMap;
@@ -47,14 +48,16 @@ public class Index {
 
   /**
    * It creates an index based on a flatten word list
-   * (Set this ({@link Selection#flattenWordList(Set, Set, Set)} method first).
+   * (Set this ({@link Selection#flattenWordList(Set, WordCollection)} method first).
    *
    * @param words flatten Word List.
    * @return a new Index object.
    */
-  static Index createIndex(List<Word> words){
+  public static Index createIndex(List<Word> words){
     final Index index = new Index();
     index.index(words);
+    index.createWordDocMatrix();
+    index.createLsiMatrix();
     return index;
   }
 
@@ -103,9 +106,6 @@ public class Index {
     docCount  = indexMap.keySet().size();
     wordCount = wordsSet.size();
     wordList.addAll(wordsSet);
-
-    createWordDocMatrix();
-    createLsiMatrix();
   }
 
   void createWordDocMatrix(){

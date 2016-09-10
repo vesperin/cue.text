@@ -19,12 +19,7 @@ import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static com.google.common.primitives.Floats.compare;
-import static com.vesperin.text.spelling.Corrector.endsWithNumbers;
 import static com.vesperin.text.spelling.Corrector.isNumber;
-import static com.vesperin.text.spelling.Corrector.startsWithNumbers;
-import static com.vesperin.text.spelling.Corrector.trimLeft;
-import static com.vesperin.text.spelling.Corrector.trimRight;
 
 /**
  * @author Huascar Sanchez
@@ -65,8 +60,8 @@ public enum WordCorrector implements Corrector {
     return Corrector.onlyConsonants(word);
   }
 
-  public static float similarity(String word, String suggestion){
-    return Similarity.similarityScore(word, suggestion);
+  public static double similarity(String word, String suggestion){
+    return Similarity.editDistanceScore(word, suggestion);
   }
 
   @Override public String correct(String word, float accuracy) {
@@ -92,7 +87,7 @@ public enum WordCorrector implements Corrector {
         if(e3.isPresent()) winners.add(e3.get());
 
         final Optional<String> winner = winners.stream().max(
-          (a, b) -> compare(similarity(word, a), similarity(word, b))
+          (a, b) -> Double.compare(similarity(word, a), similarity(word, b))
         );
 
         if(winner.isPresent()) return winner.get();
@@ -194,13 +189,7 @@ public enum WordCorrector implements Corrector {
           if(onlyConsonantsOrVowels(each))  continue;
           if(isNumber(each))                continue;
 
-          String updatedEach;
-          if(startsWithNumbers(each) || endsWithNumbers(each)) {
-            updatedEach = trimRight(trimLeft(each))
-              .toLowerCase(Locale.ENGLISH);
-          } else {
-            updatedEach = each.toLowerCase(Locale.ENGLISH);
-          }
+          String updatedEach = trimSideNumbers(each, true);
 
           dict.put(
             updatedEach,
@@ -211,5 +200,18 @@ public enum WordCorrector implements Corrector {
         }
       }
     }
+  }
+
+
+  public static String trimSideNumbers(String each, boolean lowercase){
+    String updatedEach;
+    if(Corrector.startsWithNumbers(each) || Corrector.endsWithNumbers(each)) {
+      updatedEach = Corrector.trimRight(Corrector.trimLeft(each));
+      updatedEach = lowercase ? updatedEach.toLowerCase(Locale.ENGLISH) : updatedEach;
+    } else {
+      updatedEach = lowercase ? each.toLowerCase(Locale.ENGLISH) : each;
+    }
+
+    return updatedEach;
   }
 }

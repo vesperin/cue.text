@@ -1,8 +1,6 @@
 package com.vesperin.text;
 
 import Jama.Matrix;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import com.google.common.primitives.Doubles;
 import com.vesperin.base.Context;
 import com.vesperin.base.EclipseJavaParser;
@@ -16,6 +14,7 @@ import com.vesperin.text.nouns.Noun;
 import com.vesperin.text.spelling.StopWords;
 import com.vesperin.text.spelling.WordCorrector;
 import com.vesperin.text.utils.Jamas;
+import com.vesperin.text.utils.Strings;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
@@ -28,13 +27,10 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static com.vesperin.text.spelling.WordCorrector.containsWord;
 import static com.vesperin.text.spelling.WordCorrector.similarity;
@@ -46,67 +42,73 @@ import static java.util.stream.Collectors.toList;
  *
  * @author Huascar Sanchez
  */
-public interface Selection {
+public interface Selection extends Executable {
+  /**
+   * Creates a word collection strategy that introspects the class name in search for words.
+   */
+  static WordCollection inspectClassName(Set<StopWords> stopWords){
+    return new ClassNameWordCollection(Collections.emptySet(), stopWords);
+  }
+
 
   /**
-   * Selects the most relevant words in a corpus of source files.
-   *
-   * @param code corpus
-   * @param stopWords an array of stop words
-   * @return a new list of relevant words
+   * Creates a word collection strategy that introspects the class name in search for words.
    */
-  static List<Word> selects(Set<Source> code, StopWords... stopWords){
-    return selects(code, ImmutableSet.of(), stopWords);
+  static WordCollection inspectClassName(Set<String> whiteSet, Set<StopWords> stopWords){
+    return new ClassNameWordCollection(whiteSet, stopWords);
+  }
+
+  /**
+   * Creates a word collection strategy that introspects the method name in search for words.
+   */
+  static WordCollection inspectMethodName(Set<StopWords> stopWords){
+    return new MethodNameWordCollection(Collections.emptySet(), stopWords);
+  }
+
+  /**
+   * Creates a word collection strategy that introspects the method name in search for words.
+   */
+  static WordCollection inspectMethodName(Set<String> whiteSet, Set<StopWords> stopWords){
+    return new MethodNameWordCollection(whiteSet, stopWords);
+  }
+
+  /**
+   * Creates a word collection strategy that introspects the entire method body (including
+   * signature) in search for words.
+   */
+  static WordCollection inspectMethodBody(Set<StopWords> stopWords){
+    return new MethodBodyWordCollection(Collections.emptySet(), stopWords);
+  }
+
+  /**
+   * Creates a word collection strategy that introspects the entire method body (including
+   * signature) in search for words.
+   */
+  static WordCollection inspectMethodBody(Set<String> whiteSet, Set<StopWords> stopWords){
+    return new MethodBodyWordCollection(whiteSet, stopWords);
   }
 
   /**
    * Selects the most relevant words in a corpus of source files.
    *
-   * @param code corpus
-   * @param stopWords an array of stop words
+   * @param fromCode corpus
+   * @param wordCollection strategy for collecting words in the given code
    * @return a new list of relevant words
    */
-  static List<Word> selects(Set<Source> code, Set<String> whiteSet, StopWords... stopWords){
-    return selects(Integer.MAX_VALUE, code, whiteSet, stopWords);
+  static List<Word> selects(Set<Source> fromCode, WordCollection wordCollection){
+    return selects(Integer.MAX_VALUE, fromCode, wordCollection);
   }
+
 
   /**
    * Selects the most relevant words in a corpus of source files.
    *
    * @param k limit the list to this number (capped to 10)
-   * @param code corpus
-   * @param stopWords an array of stop words
+   * @param fromCode corpus
    * @return a new list of relevant words
    */
-  static List<Word> selects(int k, Set<Source> code, StopWords... stopWords){
-    return selects(k, code, ImmutableSet.of(), stopWords);
-  }
-
-  /**
-   * Selects the most relevant words in a corpus of source files.
-   *
-   * @param k limit the list to this number (capped to 10)
-   * @param code corpus
-   * @param stopWords an array of stop words
-   * @return a new list of relevant words
-   */
-  static List<Word> selects(int k, Set<Source> code, Set<String> whiteSet, StopWords... stopWords){
-    final Set<StopWords> sw = (Objects.isNull(stopWords) || stopWords.length == 0)
-      ? StopWords.all() : Sets.newHashSet(Arrays.asList(stopWords));
-
-    return selects(k, code, whiteSet, sw);
-  }
-
-  /**
-   * Selects the most relevant words in a corpus of source files.
-   *
-   * @param k limit the list to this number (capped to 10)
-   * @param code corpus
-   * @return a new list of relevant words
-   */
-  static List<Word> selects(int k, Set<Source> code, Set<String> whiteSet, Set<StopWords> stopWords){
-    final int topK = Math.min(Math.max(0, k), 150);
-    return new SelectionImpl().weightedWords(topK, code, whiteSet, stopWords);
+  static List<Word> selects(int k, Set<Source> fromCode, WordCollection wordCollection){
+    return new SelectionImpl().weightedWords(k, fromCode, wordCollection);
   }
 
 
@@ -124,59 +126,64 @@ public interface Selection {
    * Catches a list of words from a given source code.
    *
    * @param code Java source file containing source code.
+   * @param wordCollection strategy for collecting words in the given code
    * @return a new list of words. Duplicate words are allowed.
    */
-  default List<Word> from(Source code, Set<String> whiteSet, Set<StopWords> stopWords) {
+  default List<Word> from(Source code, WordCollection wordCollection) {
     final Context       context = newContext(code);
     final UnitLocation  scope   = buildScope(context);
 
     if(scope == null) return Collections.emptyList();
 
-    return from(scope, whiteSet, stopWords);
+    return from(scope, wordCollection);
   }
 
   /**
    * Catches a list of words from a given located code block.
    *
    * @param scope Block of source code.
+   * @param wordCollection strategy for collecting words in the given scope
    * @return a new list of words. Duplicate words are allowed.
    */
-  default List<Word> from(UnitLocation scope, Set<String> whiteSet, Set<StopWords> stopWords){
+  default List<Word> from(UnitLocation scope, WordCollection wordCollection){
     final Optional<UnitLocation> optional = Optional.ofNullable(scope);
 
     if(!optional.isPresent()) return Collections.emptyList();
 
     final UnitLocation  nonNull = optional.get();
     final ASTNode       node    = nonNull.getUnitNode();
-    final WordCollector visitor = new WordCollector(whiteSet, stopWords);
 
-    node.accept(visitor);
+    node.accept(wordCollection);
 
-    return visitor.wordList();
+    final List<Word> words = new ArrayList<>(wordCollection.wordList());
+    wordCollection.clear();
+    return words;
   }
 
   /**
    * It flattens a list of word duplicates.
    *
-   * @param code set of src file
+   * @param code set of src files
+   * @param wordCollection strategy for collecting words in the given code.
    * @return the top k list of words.
    */
-  default List<Word> flattenWordList(Set<Source> code, Set<String> whiteSet, Set<StopWords> stopWords){
-    return frequentWords(Integer.MAX_VALUE, code, whiteSet, stopWords);
+  default List<Word> flattenWordList(Set<Source> code, WordCollection wordCollection){
+    return frequentWords(Integer.MAX_VALUE, code, wordCollection);
   }
 
   /**
    * Filters the k most frequent words in the corpus.
    *
    * @param k limit the number words to k words.
-   * @param code set of src file
+   * @param code set of src files
+   * @param wordCollection strategy for collecting words in the given code.
    * @return the top k list of words.
    */
-  default List<Word> frequentWords(int k, Set<Source> code, Set<String> whiteSet, Set<StopWords> stopWords){
-    final List<Word> raw = cleansing(stopWords, from(code, whiteSet, stopWords).stream())
-      .collect(Collectors.toList());
+  default List<Word> frequentWords(int k, Set<Source> code, WordCollection wordCollection){
+    final List<Word> firstPass  = from(code, wordCollection);
+    final List<Word> secondPass = cleansing(wordCollection.stopWords(), firstPass);
 
-    return from(raw, new WordByFrequency(k));
+    return from(secondPass, new WordByFrequency(k));
   }
 
   /**
@@ -187,17 +194,24 @@ public interface Selection {
    * @param code the corpus.
    * @return a list of most representative words.
    */
-  default List<Word> weightedWords(int k, Set<Source> code, Set<String> whiteSet, Set<StopWords> stopWords){
-    final List<Word> words = from(flattenWordList(code, whiteSet, stopWords), new WordByCompositeWeight());
+  default List<Word> weightedWords(int k, Set<Source> code, WordCollection wordCollection){
+    final List<Word> words = from(flattenWordList(code, wordCollection), new WordByCompositeWeight());
     if(words.isEmpty()) return words;
-    final int topK = Math.min(Math.max(0, k), words.size());
-    return words.stream().limit(topK).collect(Collectors.toList());
+    final int topK = Math.min(Math.max(0, k), 150);
+
+    return slice(topK, words);
+  }
+
+  default List<Word> slice(int k, List<Word> words){
+    return words.stream().limit(k).collect(Collectors.toList());
   }
 
 
-  static Stream<Word> cleansing(Set<StopWords> stopWords, Stream<Word> relevant){
-    return relevant
-      .filter(w -> !StopWords.isStopWord(stopWords, w.element().toLowerCase(Locale.ENGLISH)));
+  static List<Word> cleansing(Set<StopWords> stopWords, List<Word> relevant){
+    return relevant.stream()
+      .filter(w -> !Objects.isNull(w) && !StopWords.isStopWord(stopWords, w.element().toLowerCase(Locale.ENGLISH)))
+      .map(w -> Noun.get().isPlural(w.element()) ? WordImpl.from(Noun.get().singularOf(w.element()), w.value(), w.container()) : w )
+      .collect(Collectors.toList());
   }
 
 
@@ -217,14 +231,15 @@ public interface Selection {
   /**
    * Catches a list of words from a given source code.
    *
-   * @param code Java source file containing source code.
+   * @param code set of Java source files containing source code.
+   * @param wordCollection strategy for collecting words in the given code.
    * @return a new list of words. Duplicate words are allowed.
    */
-  default List<Word> from(Set<Source> code, final Set<String> whiteSet, final Set<StopWords> stopWords) {
+  default List<Word> from(Set<Source> code, final WordCollection wordCollection) {
     final List<Word> result = new CopyOnWriteArrayList<>();
 
     final Collection<Callable<List<Word>>> tasks = new ArrayList<>();
-    code.forEach(c -> tasks.add(() -> from(c, whiteSet, stopWords)));
+    code.forEach(c -> tasks.add(() -> from(c, wordCollection)));
 
     final ExecutorService service = scaleExecutor(code.size());
 
@@ -240,38 +255,6 @@ public interface Selection {
 
     shutdownService(service);
     return result;
-  }
-
-  static ExecutorService scaleExecutor(int scale){
-    final int cpus       = Runtime.getRuntime().availableProcessors();
-    scale                = scale > 10 ? 10 : scale;
-    final int maxThreads = ((cpus * scale) > 0 ? (cpus * scale) : 1);
-
-    return Executors.newFixedThreadPool(maxThreads);
-  }
-
-  static void shutdownService(ExecutorService service){
-    shutdownService(500, service);
-  }
-
-  static void shutdownService(long timeout, ExecutorService service){
-    // wait for all of the executor threads to finish
-    service.shutdown();
-
-    try {
-      if (!service.awaitTermination(timeout, TimeUnit.SECONDS)) {
-        // pool didn't terminate after the first try
-        service.shutdownNow();
-      }
-
-      if (!service.awaitTermination(timeout * 2, TimeUnit.SECONDS)) {
-        // pool didn't terminate after the second try
-        System.out.println("ERROR: executor service did not terminate after a second try.");
-      }
-    } catch (InterruptedException ex) {
-      service.shutdownNow();
-      Thread.currentThread().interrupt();
-    }
   }
 
 
@@ -343,6 +326,17 @@ public interface Selection {
   }
 
   interface Document {
+
+    /**
+     * Gets the names of all documents in the list of documents.
+     *
+     * @param documents list of documents to parse
+     * @return a list of document names.
+     */
+    static List<String> names(List<Document> documents){
+      return documents.stream().map(Document::path).collect(Collectors.toList());
+    }
+
     /**
      * @return document id
      */
@@ -357,6 +351,16 @@ public interface Selection {
      * @return the path of document
      */
     String path();
+
+    /**
+     * @return the namespace of this document.
+     */
+    String namespace();
+
+    /**
+     * @return the name at the end of the {@link #path()}.
+     */
+    String shortName();
   }
 
   class DocumentImpl implements Document {
@@ -364,17 +368,22 @@ public interface Selection {
     final int    id;
     final String filename;
     final String method;
+    final String namespace;
 
-    DocumentImpl(int id, String container){
+    public DocumentImpl(int id, String container){
       this.id = id;
 
+      int idx;
       if(!Objects.isNull(container) && container.contains("#")){
-        int idx = container.lastIndexOf("#");
-        this.filename = container.substring(0, idx);
-        this.method   = container.substring(idx + 1, container.length());
+        idx = container.lastIndexOf("#");
+        this.filename   = container.substring(0, idx);
+        this.method     = container.substring(idx + 1, container.length());
+        this.namespace  = container.substring(0, idx);
       } else {
+        idx = container.lastIndexOf(".");
         this.filename = container;
         this.method   = "";
+        this.namespace  = container.substring(0, idx);
       }
 
     }
@@ -402,6 +411,19 @@ public interface Selection {
       return filename;
     }
 
+    @Override public String namespace() {
+      return namespace;
+    }
+
+    @Override public String shortName() {
+      assert !Objects.isNull(path());
+
+      final int    index  = path().lastIndexOf(".");
+      return index > 0
+        ? path().substring(index + 1, path().length())
+        : path();
+    }
+
     @Override public String toString() {
       return path() + ("".equals(method()) ? "" :("#" + method()));
     }
@@ -418,6 +440,15 @@ public interface Selection {
       this.element    = element;
       this.container  = new HashSet<>();
       this.count      = 1;
+    }
+
+    static Word from(String element, int count, Set<String> container){
+      final WordImpl word = new WordImpl(element);
+      word.count = count;
+
+      container.forEach(word::add);
+
+      return word;
     }
 
     @Override public void add(String container) {
@@ -460,65 +491,31 @@ public interface Selection {
     }
   }
 
-  class WordCollector extends SkeletalVisitor implements Iterable <Word> {
-
-    static final Noun NOUN = Noun.newNoun();
+  abstract class WordCollection extends SkeletalVisitor implements Iterable <Word> {
+    static final Noun NOUN = Noun.get();
 
     final List<Word>      items;
-    final Set<String>     visited;
     final Set<StopWords>  stopWords;
     final Set<String>     whiteSet;
+    final Set<String>     visited;
 
-    WordCollector(Set<String> whiteSet, Set<StopWords> stopWords){
+    WordCollection(Set<String> whiteSet, Set<StopWords> stopWords){
       this.whiteSet   = whiteSet.stream()
         .map(s -> s.toLowerCase(Locale.ENGLISH))
         .collect(Collectors.toSet());
 
-      this.stopWords  = stopWords;
-      this.items      = new ArrayList<>();
-      this.visited    = new HashSet<>();
+      this.stopWords      = stopWords;
+      this.items          = new ArrayList<>();
+      this.visited        = new HashSet<>();
     }
 
-    List<Word> wordList(){
-      return items;
-    }
 
-    @Override public Iterator<Word> iterator() {
-      return wordList().iterator();
-    }
-
-    @Override public boolean visit(SimpleName simpleName) {
-      final Optional<MethodDeclaration> method = Optional.ofNullable(
-        Jdt.parent(MethodDeclaration.class, simpleName)
-      );
-
-      if(!method.isPresent()) return false;
-
-      String methodName = method.get().getName().getIdentifier();
-      methodName        = methodName.toLowerCase(Locale.ENGLISH);
-      if(!whiteSet.contains(methodName) && !whiteSet.isEmpty()) return false;
-
-
-      final String identifier = simpleName.getIdentifier()
-        .replaceAll("(-?\\d+)|(\\+1)", "");
-
-      if(visited.contains(identifier)) return false;
-      final String  pattern         = Pattern.quote("_");
-      final boolean underscored     = identifier.split(pattern).length == 1;
-      final boolean onlyConsonants  = WordCorrector.onlyConsonantsOrVowels(identifier);
-      final boolean tooSmall        = identifier.length() < 4;
-
-
-      if((underscored && onlyConsonants) || tooSmall){
-        visited.add(identifier);
-        return false;
-      }
-
+    static void addToWordList(String identifier, String container, Set<StopWords> stopWords, List<Word> wordList){
       if(!isThrowableAlike(identifier)){
         // make sure we have a valid split
-        String[] split = splitMassaging(identifier);
+        String[] split = Strings.splits(identifier);
 
-        for(String eachLabel : split){
+        for(String eachLabel : Strings.intersect(split, split)){
 
           if(" ".equals(eachLabel) || eachLabel.isEmpty()
             || StopWords.isStopWord(stopWords, eachLabel, NOUN.pluralOf(eachLabel)))
@@ -535,42 +532,37 @@ public interface Selection {
           }
 
           final String element    = currentLabel.toLowerCase(Locale.ENGLISH);
-          final String container  = resolveContainer(simpleName);
           final Word   word       = createWord(element);
           word.add(container);
 
-          wordList().add(word);
+          wordList.add(word);
         }
       }
-
-      return false;
     }
 
-    private static String[] splitMassaging(String identifier){
-      String[] split = identifier.split("((?<!(^|[A-Z]))(?=[A-Z])|(?<!^)(?=[A-Z][a-z]))|_");
-      if(split.length == 1){
-        split = split[0].split(Pattern.quote("_"));
+    void clear(){
+      synchronized (this.getClass()){
+        this.visited.clear();
+        this.items.clear();
       }
-
-      return split;
     }
 
-    private static String resolveContainer(SimpleName name){
-      final Optional<TypeDeclaration>   type   = Optional.ofNullable(Jdt.parent(TypeDeclaration.class, name));
-      final Optional<MethodDeclaration> method = Optional.ofNullable(Jdt.parent(MethodDeclaration.class, name));
-
-      String packageName = "";
-      if(type.isPresent()){
-        packageName = packageName(type.get());
-      }
-
-      final String left  = type.isPresent() ? (packageName + type.get().getName().getFullyQualifiedName()) + "#" : "";
-      final String right = method.isPresent() ? method.get().getName().getIdentifier() + (method.get().isConstructor() ? "(C)" : "") : "";
-
-      return left + right;
+    static boolean isThrowableAlike(String identifier){
+      return (identifier.endsWith("Exception")
+        || identifier.equals("Throwable")
+        || identifier.equals("Error"));
     }
 
-    private static String packageName(TypeDeclaration type){
+    static boolean isValid(String identifier){
+      final String  pattern         = Pattern.quote("_");
+      final boolean underscored     = identifier.split(pattern).length == 1;
+      final boolean onlyConsonants  = WordCorrector.onlyConsonantsOrVowels(identifier);
+      final boolean tooSmall        = identifier.length() < 4;
+
+      return !((underscored && onlyConsonants) || tooSmall);
+    }
+
+    static String packageName(TypeDeclaration type){
       assert !Objects.isNull(type);
       assert !Objects.isNull(type.getRoot());
 
@@ -585,10 +577,123 @@ public interface Selection {
       return packageName;
     }
 
-    private static boolean isThrowableAlike(String identifier){
-      return (identifier.endsWith("Exception")
-        || identifier.equals("Throwable")
-        || identifier.equals("Error"));
+    static String resolveContainer(SimpleName name){
+      final Optional<TypeDeclaration>   type   = Optional.ofNullable(Jdt.parent(TypeDeclaration.class, name));
+      final Optional<MethodDeclaration> method = Optional.ofNullable(Jdt.parent(MethodDeclaration.class, name));
+
+      String packageName = "";
+      if(type.isPresent()){
+        packageName = packageName(type.get());
+      }
+
+      final String left  = type.isPresent() ? (packageName + type.get().getName().getFullyQualifiedName()) + (method.isPresent() ? "#" : "") : "";
+      final String right = method.isPresent() ? method.get().getName().getIdentifier() + (method.get().isConstructor() ? "(C)" : "") : "";
+
+      return left + right;
+    }
+
+    Set<StopWords> stopWords(){
+      return stopWords;
+    }
+
+    List<Word> wordList(){
+      return items;
+    }
+
+    @Override public Iterator<Word> iterator() {
+      return items.iterator();
+    }
+
+  }
+
+  class ClassNameWordCollection extends WordCollection {
+
+    ClassNameWordCollection(Set<String> whiteSet, Set<StopWords> stopWords){
+      super(whiteSet, stopWords);
+    }
+
+
+    @Override public boolean visit(TypeDeclaration typeDeclaration) {
+
+      if(!typeDeclaration.isPackageMemberTypeDeclaration()) return true;
+
+
+      final String identifier = typeDeclaration.getName().getIdentifier();
+      final String container  = resolveContainer(typeDeclaration.getName());
+
+      if(visited.contains(container)) return false;
+      if(!isValid(identifier)){
+        visited.add(container);
+        return false;
+      }
+
+      addToWordList(identifier, container, stopWords, items);
+
+      visited.add(container);
+
+      return false;
+    }
+  }
+
+  class MethodNameWordCollection extends WordCollection {
+    MethodNameWordCollection(Set<String> whiteSet, Set<StopWords> stopWords){
+      super(whiteSet, stopWords);
+    }
+
+    @Override public boolean visit(MethodDeclaration methodDeclaration) {
+
+      final SimpleName simpleName = methodDeclaration.getName();
+      String methodName = simpleName.getIdentifier();
+      methodName        = methodName.toLowerCase(Locale.ENGLISH);
+      if(!whiteSet.contains(methodName) && !whiteSet.isEmpty()) return false;
+
+      final String identifier = WordCorrector.trimSideNumbers(simpleName.getIdentifier(), false);
+
+      if(visited.contains(identifier)) return false;
+      if(!isValid(identifier)){
+        visited.add(identifier);
+        return false;
+      }
+
+
+      addToWordList(identifier, resolveContainer(simpleName), stopWords, items);
+
+      visited.add(identifier);
+
+      return false;
+    }
+  }
+
+
+  class MethodBodyWordCollection extends WordCollection {
+    MethodBodyWordCollection(Set<String> whiteSet, Set<StopWords> stopWords){
+      super(whiteSet, stopWords);
+    }
+
+
+    @Override public boolean visit(SimpleName simpleName) {
+
+      final Optional<MethodDeclaration> method = Optional.ofNullable(
+        Jdt.parent(MethodDeclaration.class, simpleName)
+      );
+
+      if(!method.isPresent()) return false;
+
+      String methodName = method.get().getName().getIdentifier();
+      methodName        = methodName.toLowerCase(Locale.ENGLISH);
+      if(!whiteSet.contains(methodName) && !whiteSet.isEmpty()) return false;
+
+      final String identifier = WordCorrector.trimSideNumbers(simpleName.getIdentifier(), false);
+
+      if(visited.contains(identifier)) return false;
+
+      if(!isValid(identifier)){
+        visited.add(identifier);
+        return false;
+      }
+
+      addToWordList(identifier, resolveContainer(simpleName), stopWords, items);
+      return false;
     }
   }
 
@@ -749,6 +854,7 @@ public interface Selection {
       if(words.isEmpty()) return words;
 
       index.index(words);
+      index.createWordDocMatrix();
 
       final Map<Word, Double> scores = weightWords(index.wordDocFrequency(), index.wordList());
 

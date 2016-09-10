@@ -5,7 +5,7 @@ import java.util.Locale;
 /**
  * @author Huascar Sanchez
  */
-interface Corrector {
+public interface Corrector {
 
   /**
    * Provides the best word correction for a given word. This word will have a

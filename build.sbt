@@ -4,7 +4,7 @@ import sbtassembly.AssemblyPlugin.autoImport._
 
 
 // Project name (artifact name in Maven)
-name := "cue.text"
+name := "introspector"
 
 // organization name (e.g., the package name of the project)
 organization := "com.vesperin"
@@ -12,7 +12,7 @@ organization := "com.vesperin"
 version := "0.1"
 
 // project description
-description := "text mining"
+description := "Source code mining and concept analysis utilities"
 
 // Enables publishing to maven repo
 publishMavenStyle := true
@@ -32,7 +32,7 @@ assemblyMergeStrategy in assembly := {
 }
 
 
-assemblyJarName in assembly:= "cue.text-0.1.jar"
+assemblyJarName in assembly:= "introspector-0.1.jar"
 
 // skip tests during assembling
 test in assembly := {}

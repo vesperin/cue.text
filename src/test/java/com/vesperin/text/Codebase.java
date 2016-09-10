@@ -21,9 +21,9 @@ public class Codebase {
       "",
       "  public static void quicksort(int[] arr, int left, int right) {",
       "    if (left < right) {",
-      "      int pivot = randomizedPartition(arr, left, right);",
-      "      quicksort(arr, left, pivot);",
-      "      quicksort(arr, pivot + 1, right);",
+      "      int pivots = randomizedPartition(arr, left, right);",
+      "      quicksort(arr, left, pivots);",
+      "      quicksort(arr, pivots + 1, right);",
       "    }",
       "  }",
       "",
@@ -188,7 +188,7 @@ public class Codebase {
   }
 
 
-  private static Source createCode(String name, String... lines){
+  static Source createCode(String name, String... lines){
     return Source.from(name, String.join("\n", Arrays.asList(lines)));
   }
 }

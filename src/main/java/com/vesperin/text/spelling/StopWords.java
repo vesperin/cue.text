@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -66,8 +67,27 @@ public enum StopWords {
 
     for(String each : uniqueWords){
       if(Objects.isNull(each) || each.isEmpty()) continue;
-      add(each);
+      final String lowercase = each.toLowerCase(Locale.ENGLISH);
+      add(lowercase);
     }
+  }
+
+  /**
+   * @return a constructed set of stop word objects
+   */
+  public static Set<StopWords> of(StopWords... stopWords){
+
+    if(Objects.isNull(stopWords) || stopWords.length == 0) return Collections.emptySet();
+
+    Set<StopWords> result = null;
+    for (StopWords each : stopWords){
+      if(Objects.isNull(result)) { result = EnumSet.of(each); } else {
+        result.add(each);
+      }
+    }
+
+    return result;
+
   }
 
   /**
@@ -76,6 +96,22 @@ public enum StopWords {
    */
   public static Set<StopWords> all(){
     return EnumSet.of(StopWords.ENGLISH, StopWords.JAVA, StopWords.GENERAL);
+
+  }
+
+  /**
+   * Refreshes all the relevant stop words with a fresh list of words.
+   * @param english english list of words
+   * @param java java list of words
+   * @param general general programming list of words
+   * @return a new set of refreshed stop words.
+   */
+  public static Set<StopWords> update(List<String> english, List<String> java, List<String> general){
+    StopWords.ENGLISH.addAll(english);
+    StopWords.JAVA.addAll(java);
+    StopWords.GENERAL.addAll(general);
+
+    return all();
   }
 
   /**
@@ -88,7 +124,7 @@ public enum StopWords {
   public static boolean isStopWord(Set<StopWords> corpus, String... word){
     for(String w : word){
       for(StopWords s : corpus){
-        if(s.isStopWord(w)) return true;
+        if(s.isStopWord(w) || Corrector.isNumber(w)) return true;
       }
     }
 
