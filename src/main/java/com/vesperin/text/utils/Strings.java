@@ -1,11 +1,13 @@
 package com.vesperin.text.utils;
 
 import com.google.common.collect.Sets;
+import com.vesperin.text.nouns.Noun;
 import com.vesperin.text.spelling.Corrector;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -21,39 +23,44 @@ import static java.util.stream.Collectors.toList;
  */
 public class Strings {
   private static final String CAMEL_CASE = "((?<!(^|[A-Z]))(?=[A-Z])|(?<!^)(?=[A-Z][a-z]))|((?<=[a-zA-Z])(?=[0-9]))|((?<=[0-9])(?=[a-zA-Z]))|_";
+
   private Strings(){}
 
   public static String[] splits(String word){
     String[] split = word.split(CAMEL_CASE);
     if(split.length == 1){
       split = split[0].split(Pattern.quote("_"));
-//      if(split.length == 1){
-//
-//        final boolean firstConsonant  = isConsonant(split[0].charAt(0));
-//        final boolean secondConsonant = isConsonant(split[0].charAt(1));
-//        if(firstConsonant && secondConsonant){
-//          split = new String[]{
-//            String.valueOf(Character.toUpperCase(split[0].charAt(0))),
-//            split[0].substring(1)
-////            Character.toUpperCase(split[0].charAt(1)) + split[0].substring(2)
-//          };
-//        }
-//      }
     }
 
     return split;
   }
 
-  private static boolean isConsonant(final char ch){
-    return !isVowel(ch);
-  }
-
-  private static boolean isVowel(final char ch) {
-    return ch == 'a' || ch == 'e' || ch == 'i' || ch == 'o' || ch == 'u';
+  public static Set<String> intersect(String x, String y){
+    return Strings.intersect(
+      Strings.splits(x),
+      Strings.splits(y)
+    );
   }
 
   public static Set<String> intersect(String[] a, String[] b){
     return intersect(Arrays.asList(a), Arrays.asList(b));
+  }
+
+  public static String sharedSuffix(String x, String y){
+    int m = x.length() - 1;
+    int n = y.length() - 1;
+
+    int k = 0;
+    String suffix;
+
+    while(m >= 0 && n >= 0 && x.substring(m).equals(y.substring(n))){
+      m--;
+      n--;
+      k++;
+    }
+
+    suffix = x.substring((x.length() - (k)), x.length());
+    return suffix;
   }
 
   private static Set<String> intersect(List<String> a, List<String> b){
@@ -132,4 +139,89 @@ public class Strings {
   private static double gaussianKernel(double t1, double t2, String oi, String oj){
     return t1 * Math.exp(-(Math.pow(Similarity.damerauLevenshteinScore(oi, oj), 2) / t2));
   }
+
+  public static int lcSuffix(String x, String y){
+//
+//    x = cleanup(x);
+//    y = cleanup(y);
+
+    return sharedSuffix(x, y).length();
+  }
+
+  public static String cleanup(String text){
+    // if the text contains numbers at the end of the string
+    // if the text contains 2x2 notation
+    // if
+
+    String curated = text;
+    boolean endsWithTripleLetters = curated.matches(".*[A-Z]{3}");
+    if(endsWithTripleLetters){
+      curated = curated.replaceAll("[A-Z]{3}", "");
+    } else {
+      boolean endsWithPattern = curated.matches(".*[0-9]+[a-zA-Z]([0-9])*")
+        && Character.isDigit(curated.charAt(curated.length() - 1));
+
+      if (endsWithPattern){ // 2x2 or alike
+        curated = curated.replaceAll("[0-9]+[a-zA-Z]([0-9])*", "");
+      } else {
+
+        endsWithPattern = curated.matches(".*[0-9]+[a-z]*")
+          && Character.isLowerCase(curated.charAt(curated.length() - 1));
+
+        if (endsWithPattern){
+          curated = curated.replaceAll("[0-9]+[a-z]+", "");
+        } else {
+
+          endsWithPattern = containsSubstringPattern(curated);
+          if(endsWithPattern){
+            curated = replaceAll(curated);
+          } else {
+            curated = curated.replaceAll("([0-9])*", "");
+          }
+
+        }
+
+      }
+    }
+
+
+    curated = Character.isUpperCase(curated.charAt(curated.length() - 1))
+      ? curated.substring(0, curated.length() - 1)
+      : curated;
+
+    return curated;
+  }
+
+  private static boolean containsSubstringPattern (String word){
+    return (word.contains("2D") && !word.endsWith("2D"))
+      || (word.contains("3D") && !word.endsWith("3D"));
+  }
+
+  private static String replaceAll(String word){
+    final Set<String> matches = new HashSet<>();
+    matches.add("2D");
+    matches.add("3D");
+
+    return replaceMatching(word, matches);
+  }
+
+  private static String replaceMatching(String word, Set<String> matches){
+    for(String match : matches){
+      if(word.contains(match)) {
+        word = word.replace(match, "");
+      }
+    }
+
+    return word;
+  }
+
+  public static String firstCharUpperCase(String word){
+    return Character.toUpperCase(word.charAt(0)) + word.substring(1);
+  }
+
+  public static void main(String[] args) {
+    String x = Strings.cleanup("LaVida3DTriangle");
+    System.out.println(x);
+  }
+
 }

@@ -20,7 +20,7 @@ public class Similarity {
    * @param s2 second string
    * @return normalized distance.
    */
-  private static double normalize(int distance, String s1, String s2){
+  public static double normalize(int distance, String s1, String s2){
     Objects.requireNonNull(s1);
     Objects.requireNonNull(s2);
 
@@ -258,5 +258,10 @@ public class Similarity {
     }
 
     return result;
+  }
+
+
+  public static double lcSuffixScore(String x, String y){
+    return Similarity.normalize(Strings.lcSuffix(x, y), x, y);
   }
 }

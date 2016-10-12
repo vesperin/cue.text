@@ -1,5 +1,6 @@
 package com.vesperin.text.spelling;
 
+import com.vesperin.text.nouns.Noun;
 import com.vesperin.text.utils.Similarity;
 
 import java.io.IOException;
@@ -29,13 +30,13 @@ public enum WordCorrector implements Corrector {
 
   private static final String CAMEL_CASE = "((?<!(^|[A-Z]))(?=[A-Z])|(?<!^)(?=[A-Z][a-z]))|_";
 
-  private SortedMap<String,Integer> dictionary;
+  private SortedMap<String,Integer> wordToFrequency;
 
   WordCorrector(Path index){
-    this.dictionary = new TreeMap<>();
+    this.wordToFrequency = new TreeMap<>();
 
     try {
-      populateDictionary(index, this.dictionary);
+      populateDictionary(index, this.wordToFrequency);
     } catch (IOException e) {
       throw new IllegalStateException("Unable to populate dictionary!");
     }
@@ -57,11 +58,11 @@ public enum WordCorrector implements Corrector {
   }
 
   public static boolean onlyConsonantsOrVowels(String word){
-    return Corrector.onlyConsonants(word);
+    return Corrector.onlyConsonants(word) || Corrector.onlyVowels(word);
   }
 
   public static double similarity(String word, String suggestion){
-    return Similarity.editDistanceScore(word, suggestion);
+    return Similarity.damerauLevenshteinScore(word, suggestion);
   }
 
   @Override public String correct(String word, float accuracy) {
@@ -76,9 +77,9 @@ public enum WordCorrector implements Corrector {
         );
 
         // Use prefixes (like a Trie)
-        Optional<String> e3 = max(getPrefixedBy(word, dictionary).stream());
+        Optional<String> e3 = max(getPrefixedBy(word, wordToFrequency).stream());
         if(!e3.isPresent()){
-          e3 = max(getPrefixedBy(word.substring(0, word.length() - 1), dictionary).stream());
+          e3 = max(getPrefixedBy(word.substring(0, word.length() - 1), wordToFrequency).stream());
         }
 
         final Set<String> winners = new HashSet<>();
@@ -94,10 +95,10 @@ public enum WordCorrector implements Corrector {
 
         return word;
       } else {
-        Optional<String> e0 = max(getPrefixedBy(word, dictionary).stream());
+        Optional<String> e0 = max(getPrefixedBy(word, wordToFrequency).stream());
 
         if(!e0.isPresent()){
-          e0 = max(getPrefixedBy(word.substring(0, word.length() - 1), dictionary).stream());
+          e0 = max(getPrefixedBy(word.substring(0, word.length() - 1), wordToFrequency).stream());
         }
 
         if(e0.isPresent()) return e0.get();
@@ -117,7 +118,7 @@ public enum WordCorrector implements Corrector {
   }
 
   private boolean contains(String word){
-    return dictionary.containsKey(word);
+    return wordToFrequency.containsKey(word);
   }
 
   private static <V> SortedMap<String, V> filterPrefix(SortedMap<String,V> baseMap, String prefix) {
@@ -143,7 +144,7 @@ public enum WordCorrector implements Corrector {
 
 
   private Optional<String> max(Stream<String> stream){
-    return stream.max((a, b) -> dictionary.get(a) - dictionary.get(b));
+    return stream.max((a, b) -> wordToFrequency.get(a) - wordToFrequency.get(b));
   }
 
   private Stream<String> mutate(final String word){
@@ -185,11 +186,16 @@ public enum WordCorrector implements Corrector {
         final String[] words = m.group().split(CAMEL_CASE);
 
         for(String each : words){
+
           if(each.length() <= 2)            continue;
           if(onlyConsonantsOrVowels(each))  continue;
           if(isNumber(each))                continue;
+          if(StopWords.ENGLISH.isStopWord(line)) continue;
 
           String updatedEach = trimSideNumbers(each, true);
+          updatedEach        = Noun.get().isPlural(updatedEach)
+            ? Noun.get().singularOf(updatedEach)
+            : updatedEach;
 
           dict.put(
             updatedEach,

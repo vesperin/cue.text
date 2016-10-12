@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -18,7 +19,7 @@ import java.util.Set;
 /**
  * @author Huascar Sanchez
  */
-public enum StopWords {
+public enum StopWords implements BagOfWords {
   ENGLISH(), JAVA(), GENERAL(), CUSTOM();
 
 
@@ -43,25 +44,19 @@ public enum StopWords {
     this.stripApostrophes = stripApostrophes;
     this.stopWords = new HashSet<>();
 
-    loadSupportedLanguages();
+    final String wordListResource = name().toLowerCase(Locale.ENGLISH);
+    if (!CUSTOM_WORD.equals(wordListResource)) {
+      readFromFile(wordListResource);
+    }
+
   }
 
-  /**
-   * Adds a new word to the stop-words list.
-   *
-   * @param word new word to add
-   */
-  public void add(String word){
+  @Override public void add(String word){
     final String nonNullWord = Objects.requireNonNull(word);
     stopWords.add(nonNullWord.toLowerCase(Locale.ENGLISH));
   }
 
-  /**
-   * Adds a list of words to the stop-words object.
-   *
-   * @param words list of words to add
-   */
-  public void addAll(List<String> words){
+  @Override public void addAll(Collection<String> words){
     final Set<String> uniqueWords = new HashSet<>();
     uniqueWords.addAll(words);
 
@@ -146,35 +141,36 @@ public enum StopWords {
     );
   }
 
-  private void loadSupportedLanguages() {
-    final String wordListResource = name().toLowerCase(Locale.ENGLISH);
-    if (!CUSTOM_WORD.equals(wordListResource)) {
+  /**
+   * Loads a file (identified by its name) containing words of interest.
+   *
+   * @param name file name (lowercase)
+   */
+  private void readFromFile(String name) {
+    final Class<?> bagClass = getClass();
 
-      final Class<?> stopWordsClass = getClass();
+    try (final InputStream in = bagClass.getResourceAsStream("/" + name);
+         final InputStreamReader inr = new InputStreamReader(in, Charset.forName("UTF-8"))) {
 
-      try (final InputStream in = stopWordsClass.getResourceAsStream("/" + wordListResource);
-           final InputStreamReader inr = new InputStreamReader(in, Charset.forName("UTF-8"))) {
+      final List<String> lines = CharStreams.readLines(inr);
+      final Iterator<String> iterator = lines.iterator();
+      String line;
 
-        final List<String> lines = CharStreams.readLines(inr);
-        final Iterator<String> iterator = lines.iterator();
-        String line;
+      while (iterator.hasNext()) {
+        line = iterator.next();
+        line = line.replaceAll("\\|.*", "").trim();
 
-        while (iterator.hasNext()) {
-          line = iterator.next();
-          line = line.replaceAll("\\|.*", "").trim();
-
-          if (line.length() == 0) {
-            continue;
-          }
-
-          for (final String w : line.split("\\s+")) {
-            add(w);
-          }
+        if (line.length() == 0) {
+          continue;
         }
 
-      } catch (IOException e) {
-        throw new RuntimeException(e);
+        for (final String w : line.split("\\s+")) {
+          add(w);
+        }
       }
+
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 }

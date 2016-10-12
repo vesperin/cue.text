@@ -21,6 +21,11 @@ public class Noun {
     return Installer.NOUN;
   }
 
+  public static String toSingular(String word){
+    final Noun instance = Noun.get();
+    return instance.isPlural(word) ? instance.singularOf(word) : word;
+  }
+
   public boolean isSingular(String word){
     return Objects.equals(singularOf(word), word);
   }

@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static com.vesperin.text.spelling.Dictionary.isDefined;
 import static com.vesperin.text.spelling.WordCorrector.containsWord;
 import static com.vesperin.text.spelling.WordCorrector.similarity;
 import static com.vesperin.text.spelling.WordCorrector.suggestCorrection;
@@ -361,6 +362,11 @@ public interface Selection extends Executable {
      * @return the name at the end of the {@link #path()}.
      */
     String shortName();
+
+    /**
+     * @return the name transformed for comparison purposes.
+     */
+    String transformedName();
   }
 
   class DocumentImpl implements Document {
@@ -369,6 +375,8 @@ public interface Selection extends Executable {
     final String filename;
     final String method;
     final String namespace;
+    final String shortName;
+    final String transformedName;
 
     public DocumentImpl(int id, String container){
       this.id = id;
@@ -386,6 +394,46 @@ public interface Selection extends Executable {
         this.namespace  = container.substring(0, idx);
       }
 
+      // extracts the document's short name
+      assert !Objects.isNull(path());
+      this.shortName = extractsShortname(path());
+
+      // transforms (if required) this shortname;
+      this.transformedName = transforms(shortName());
+
+    }
+
+    private static String extractsShortname(String path){
+      final int    index  = path.lastIndexOf(".");
+      return (index > 0
+        ? path.substring(index + 1, path.length())
+        : path);
+    }
+
+
+    private static String transforms(String shortName){
+
+      String   x  = Strings.cleanup(shortName);
+      String[] xa = Strings.splits(x);
+
+      if (xa.length == 0) return shortName;
+
+      String xS   = xa[xa.length - 1];
+      xS          = Noun.toSingular(xS);
+
+      String lxS  = xS.toLowerCase(Locale.ENGLISH);
+      final boolean inTheClub = isDefined(lxS);
+
+      xS = inTheClub ? xS : Strings.firstCharUpperCase(WordCorrector.suggestCorrection(lxS));
+
+      final StringBuilder sb = new StringBuilder();
+      for(int i = 0; i < xa.length - 1; i++){
+        sb.append(xa[i]);
+      }
+
+      sb.append(xS);
+
+      return sb.toString();
     }
 
     @Override public boolean equals(Object obj) {
@@ -418,10 +466,13 @@ public interface Selection extends Executable {
     @Override public String shortName() {
       assert !Objects.isNull(path());
 
-      final int    index  = path().lastIndexOf(".");
-      return index > 0
-        ? path().substring(index + 1, path().length())
-        : path();
+      return this.shortName;
+    }
+
+    @Override public String transformedName() {
+      assert !Objects.isNull(shortName());
+
+      return this.transformedName;
     }
 
     @Override public String toString() {

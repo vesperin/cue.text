@@ -30,7 +30,32 @@ public interface Corrector {
   static boolean onlyConsonants(String word) {
     // thx to http://stackoverflow.com/q/26536829/26536928
     return !(word == null || word.isEmpty())
-      && word.toLowerCase(Locale.ENGLISH).matches("^[aeiuoAEIOU]*$|^(?!.*(NG|ng)).[^aeyiuo]*$");
+      && !hasAVowel(word.toLowerCase(Locale.ENGLISH));//.matches("^(?!.*(NG|ng)).[^aeyiuo]*$");
+  }
+
+  static boolean onlyVowels(String word) {
+    // thx to http://stackoverflow.com/q/26536829/26536928
+    return !(word == null || word.isEmpty())
+      && onlyConsonants(word);
+  }
+
+  static boolean hasAVowel(final String input){
+    for (int i = 0; i < input.length(); i++) {
+      switch (input.charAt(i)) {
+        case 'a':
+          return true;
+        case 'e':
+          return true;
+        case 'i':
+          return true;
+        case 'o':
+          return true;
+        case 'u':
+          return true;
+      }
+    }
+
+    return false;
   }
 
   static boolean isNumber(String input) {

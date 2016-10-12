@@ -5,7 +5,6 @@ import com.google.common.collect.ImmutableMultiset;
 import com.google.common.primitives.Doubles;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
-import com.vesperin.text.nouns.Noun;
 import com.vesperin.text.utils.Jamas;
 import com.vesperin.text.utils.Similarity;
 import com.vesperin.text.utils.Strings;
@@ -15,7 +14,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static com.vesperin.text.Grouping.Graph.singularShortName;
 import static java.util.stream.Collectors.toList;
 
 /**
@@ -296,7 +294,6 @@ public interface Grouping {
 
       final List<Group> clusters = makeClusters(MST);
 
-
       return Groups.of(clusters);
     }
 
@@ -452,11 +449,16 @@ public interface Grouping {
         Document max = null;
 
         for(Document parent : map.keySet()){
+
+          if(parent.transformedName().endsWith("Trimesh") && (orphan.transformedName().endsWith("Trimesh"))) {
+            System.out.println();
+          }
+
           if (skipPair(orphan, parent)) continue;
 
           final Set<String> labels = Graph.sharedLabels(orphan, parent);
 
-          if(max == null && !labels.isEmpty()){
+          if(max == null && (!labels.isEmpty() || Graph.sharedSuffix(orphan, parent))){
             max = parent;
           } else {
             if((Doubles.compare(distance(orphan, max), distance(orphan, parent)) < 0)
@@ -475,17 +477,29 @@ public interface Grouping {
       }
     }
 
+
+    // only works in re-clustering; trying to match orphan names with potential parents
     private static boolean skipPair(Document orphan, Document parent) {
-      return ((Doubles.compare(distance(orphan, parent), 0.45D) < 0)
-        && !Graph.validScenario(orphan.shortName(), parent.shortName()))
+
+      final boolean skip = ((Doubles.compare(distance(orphan, parent), 0.6D) < 0)
+        && !Graph.sharedSuffix(orphan, parent))
         || Doubles.compare(distance(orphan, parent), distance(orphan, orphan)) == 0;
+
+      final boolean canOverrideSkip = Graph.sharedSuffix(orphan, parent)
+        && !orphan.toString().equals(parent.toString());
+
+      return skip && !canOverrideSkip;
     }
 
 
 
     private static double distance(Document a, Document b){
       if(Objects.isNull(b)) return 0.0D;
-      return 1.0D - Similarity.lcSubstrScore(singularShortName(a.shortName()), singularShortName(b.shortName()));
+
+      String x = a.transformedName(); //Noun.toSingular(Strings.cleanup(a.shortName()));
+      String y = b.transformedName(); //Noun.toSingular(Strings.cleanup(b.shortName()));
+
+      return Similarity.normalize(Strings.lcSuffix(x, y), x, y);
     }
   }
 
@@ -525,22 +539,47 @@ public interface Grouping {
      * @return intersecting words.
      */
     static Set<String> sharedLabels(Document a, Document b){
-      return Strings.intersect(
-        Strings.splits(singularShortName(a.shortName())),
-        Strings.splits(singularShortName(b.shortName()))
-      );
+
+      String x = a.transformedName(); //Noun.toSingular(a.shortName());
+      String y = b.transformedName(); //Noun.toSingular(b.shortName());
+
+      return Strings.intersect(x, y).stream()
+        .filter(s -> s.length() >= 3).collect(Collectors.toSet());
     }
 
-    /**
-     * Ensures the short name of a document is singular.
-     *
-     * @param shortname document's short name
-     * @return the singular short name
-     */
-    static String singularShortName(String shortname){
-      return Noun.get().isPlural(shortname)
-        ? Noun.get().singularOf(shortname)
-        : shortname;
+    static boolean sharedSuffix(Document a, Document b){
+
+      String x = a.transformedName();
+      String y = b.transformedName();
+
+//      String suffix = Strings.sharedSuffix(x, y);
+//      return WordCorrector.isValidWord(suffix) && suffix.length() >= 3 && !suffix.equals(suffix.toLowerCase());
+
+
+//      String x = Strings.cleanup(a.shortName());
+//      String y = Strings.cleanup(b.shortName());
+//
+      String[] xa = Strings.splits(x);
+      String[] ya = Strings.splits(y);
+
+      if (xa.length == 0 || ya.length == 0) return false;
+//
+      String xS   = xa[xa.length - 1];
+      String yS   = ya[ya.length - 1];
+//
+//      xS = Noun.toSingular(xS);
+//      yS = Noun.toSingular(yS);
+//
+//
+//      xS = WordCorrector.isValidWord(xS.toLowerCase())
+//        ? xS
+//        : Strings.firstCharUpperCase(WordCorrector.suggestCorrection(xS.toLowerCase()));
+//
+//      yS = WordCorrector.isValidWord(yS.toLowerCase())
+//        ? yS
+//        : Strings.firstCharUpperCase(WordCorrector.suggestCorrection(yS.toLowerCase()));
+//
+      return xS.equals(yS);
     }
 
     /**
@@ -558,19 +597,33 @@ public interface Grouping {
           final Document a = vertices.get(i);
           final Document b = vertices.get(j);
 
-          final double distance = calculateLCSDistance(a, b);
-          // skip documents with same name
-          if(sameName(distance))   continue;
+          final double distance = calculateSuitableDistance(a, b);
+
+          // skip documents with same fully qualified name
+          if(a.toString().equals(b.toString()))   continue;
 
           final Set<String> labels = sharedLabels(a, b);
 
           // filter to reduce search space
-          // (distance, k-words)-filter.
-          if((Double.compare(distance, 0.45D) >= 0 && labels.size() < 2)
-            || !validScenario(a.shortName(), b.shortName()) || labels.isEmpty()) continue;
 
-          final Edge e = new Edge(a, b, (1.0D - distance));
+          final boolean sharedSuffix = sharedSuffix(a, b);
+
+          // (distance, k-words)-filter.
+          final boolean dissatisfiedDistanceKWordsFilter = (Double.compare(distance, 0.6D) <= 0
+            && labels.size() < 2);
+          // don't share labels even after spell correction
+          //final boolean invalidScenario                  = !validScenario(a.transformedName(), b.transformedName());
+          // don't share labels, period.
+          final boolean disjointLabels                   = labels.isEmpty();
+
+          if (!sharedSuffix && (dissatisfiedDistanceKWordsFilter || disjointLabels)){
+            continue;
+          }
+
+          final Edge e = new Edge(a, b, (distance));
           labels.forEach(e::labels);
+
+          e.labels(Strings.sharedSuffix(a.transformedName(), b.transformedName()));
 
           edges.add(e);
         }
@@ -581,18 +634,22 @@ public interface Grouping {
         .collect(Collectors.toList());
     }
 
-    static boolean validScenario(String child, String parent){
-      final Set<String> labels = Strings.intersect(Strings.splits(child), Strings.splits(parent));
-      return labels.size() == 1 && labels.contains(singularShortName(child));
-    }
+//    static boolean validScenario(String child, String parent){
+////
+////      child   = Strings.cleanup(child);
+////      parent  = Strings.cleanup(parent);
+//
+//      String suffix = Strings.sharedSuffix(child, parent);
+//      return WordCorrector.isValidWord(suffix) && Strings.lcSuffix(child, parent) >= 4;
+//    }
 
-    private static boolean sameName(double distance) {
-      return Double.isNaN(distance) || Double.compare(distance, 0D) == 0;
-    }
 
+    private static double calculateSuitableDistance(Document a, Document b) throws IllegalStateException {
 
-    private static double calculateLCSDistance(Document a, Document b) throws IllegalStateException {
-      return Similarity.lcsDistanceScore(a.shortName(), b.shortName());
+      String x = a.transformedName(); //Noun.toSingular(a.shortName());
+      String y = b.transformedName(); //Noun.toSingular(b.shortName());
+
+      return Similarity.lcSuffixScore(x, y);
     }
 
     List<Edge> edgeList(){
@@ -725,6 +782,10 @@ public interface Grouping {
    * @author Huascar Sanchez
    */
   final class Kruskal {
+    static final Predicate<Edge> SHARED_SUFFIX = (e -> Graph.sharedSuffix(e.from(), e.to()));
+
+    static final Predicate<Edge> MIN_SCORE  = (e -> Doubles.compare(e.weight(), 0.2D) >= 0);
+
     /**
      * Creates a minimum spanning tree (MST) from a given {@link Graph}
      *
@@ -735,8 +796,10 @@ public interface Grouping {
       final UnionFind uf = new UnionFind();
       final List<Edge> edges = new ArrayList<>();
 
+
       final List<Edge> filtered = graph.edgeList().stream()
-        .filter(e -> Doubles.compare(e.weight(), 0.7D) >= 0)
+        .filter(MIN_SCORE)
+        .filter(SHARED_SUFFIX)
         .collect(Collectors.toList());
 
       final Graph pre = new Graph(
