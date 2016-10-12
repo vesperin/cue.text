@@ -4,14 +4,12 @@ import Jama.Matrix;
 import com.google.common.primitives.Doubles;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
-import com.vesperin.text.nouns.Noun;
 import com.vesperin.text.spelling.StopWords;
 import com.vesperin.text.utils.Jamas;
 import com.vesperin.text.utils.Strings;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toConcurrentMap;
 
@@ -108,9 +106,8 @@ public interface Query {
   default Result labelsSearch(List<Document> documents, Set<StopWords> stopWords){
     // we don't accept plurals and stop words
     final List<String> allStrings = documents.stream()
-      .flatMap(s -> Arrays.asList(Strings.splits(s.shortName())).stream())
-      .map(s -> Noun.get().isPlural(s) ? Noun.get().singularOf(s) : s)
-      .filter(s -> !StopWords.isStopWord(stopWords, s))
+      .flatMap(s -> Arrays.stream(Strings.splits(s.transformedName())))
+//      .map(s -> Noun.get().isPlural(s) ? Noun.get().singularOf(s) : s)
       .collect(Collectors.toList());
 
     // frequency calculation
@@ -118,17 +115,17 @@ public interface Query {
       .collect(toConcurrentMap(w -> w.toLowerCase(Locale.ENGLISH), w -> 1, Integer::sum));
 
     // sort entries in ascending order
-    Stream<Map.Entry<String, Integer>> firstPass = scores.entrySet().stream()
-      .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()));
+    List<Map.Entry<String, Integer>> firstPass = scores.entrySet().stream()
+      .collect(Collectors.toList());
 
     // if we are dealing with multiple documents, filter words
     // whose frequency is 1
     if(documents.size() > 1){
-      firstPass = firstPass.filter(e -> e.getValue() > 1);
+      firstPass = firstPass.stream().filter(e -> e.getValue() > 1).collect(Collectors.toList());
     }
 
-    final List<String> secondPass = firstPass.map(Map.Entry::getKey)
-      .filter(s -> s.length() > 3).sorted(String::compareTo)
+    final List<String> secondPass = firstPass.stream().map(Map.Entry::getKey)
+      .filter(s -> s.length() >= 3)
       .collect(Collectors.toList());
 
     return Result.downcast(secondPass);

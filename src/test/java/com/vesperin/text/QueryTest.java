@@ -2,6 +2,7 @@ package com.vesperin.text;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.vesperin.base.Source;
 import com.vesperin.text.Grouping.Group;
@@ -15,9 +16,11 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -142,8 +145,10 @@ public class QueryTest {
       final List<Document> ds = Group.items(each, Document.class);
       final Result result = Query.labels(ds, StopWords.all());
 
+      final List<String> labels = Lists.newArrayList(Result.items(result, String.class).stream().collect(Collectors.toCollection(LinkedList::new)).descendingIterator());
+
       final List<String> names     = Document.names(ds);
-      System.out.println(names + " " + result);
+      System.out.println(names + " " + labels);
     }
   }
 

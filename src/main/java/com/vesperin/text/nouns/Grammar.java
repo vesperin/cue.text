@@ -99,7 +99,7 @@ final class Grammar {
       "toothpaste", "traffic", "trousers", "vinegar",
       "water", "weather", "wood", "wool", "work");
 
-    unchanged("criteria", "media");
+    unchanged("criteria", "media", "data");
   }
 
   private static void ensureValidExpression(String exp){
@@ -149,7 +149,7 @@ final class Grammar {
   private void uncountable(String... words){
     if(words == null || words.length == 0) return;
 
-    final List<String> filtered = Arrays.asList(words).stream()
+    final List<String> filtered = Arrays.stream(words)
       .filter(w -> null != w)
       .collect(toList());
 
@@ -159,7 +159,7 @@ final class Grammar {
   private void unchanged(String... words){
     if(words == null || words.length == 0) return;
 
-    final List<String> filtered = Arrays.asList(words).stream()
+    final List<String> filtered = Arrays.stream(words)
       .filter(w -> null != w)
       .collect(toList());
 
