@@ -8,8 +8,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static com.vesperin.text.spelling.Corrector.isNumber;
 
@@ -64,7 +62,7 @@ public enum Dictionary implements BagOfWords {
       return true;
     }
     // check right quotes as apostrophes
-    return word.contains(
+    return words.contains(
       word.replace('\u2019', '\'').toLowerCase(Locale.ENGLISH)
     );
   }

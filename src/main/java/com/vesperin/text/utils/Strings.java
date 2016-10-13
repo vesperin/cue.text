@@ -1,7 +1,6 @@
 package com.vesperin.text.utils;
 
 import com.google.common.collect.Sets;
-import com.vesperin.text.nouns.Noun;
 import com.vesperin.text.spelling.Corrector;
 
 import java.util.Arrays;
