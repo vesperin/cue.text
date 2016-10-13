@@ -391,7 +391,7 @@ public interface Selection extends Executable {
         idx = container.lastIndexOf(".");
         this.filename = container;
         this.method   = "";
-        this.namespace  = container.substring(0, idx);
+        this.namespace  = idx > 0 ? container.substring(0, idx) : "";
       }
 
       // extracts the document's short name

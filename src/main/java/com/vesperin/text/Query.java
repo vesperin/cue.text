@@ -1,6 +1,8 @@
 package com.vesperin.text;
 
 import Jama.Matrix;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import com.google.common.primitives.Doubles;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
@@ -52,6 +54,18 @@ public interface Query {
    */
   static Result labels(final List<Document> docs, Set<StopWords> stopWords){
     return createQuery().labelsSearch(docs, stopWords);
+  }
+
+  /**
+   * Collapses a list of labels into one label.
+   *
+   * @param result results object to be collapsed.
+   * @return collapsed label.
+   */
+  static String label(Result result){
+    return Joiner.on(";").join(Lists.newArrayList(Result.items(result, String.class).stream()
+      .collect(Collectors.toCollection(LinkedList::new))
+      .descendingIterator()));
   }
 
   /**
@@ -107,26 +121,25 @@ public interface Query {
     // we don't accept plurals and stop words
     final List<String> allStrings = documents.stream()
       .flatMap(s -> Arrays.stream(Strings.splits(s.transformedName())))
-//      .map(s -> Noun.get().isPlural(s) ? Noun.get().singularOf(s) : s)
       .collect(Collectors.toList());
 
     // frequency calculation
     final Map<String, Integer> scores = allStrings.stream()
-      .collect(toConcurrentMap(w -> w.toLowerCase(Locale.ENGLISH), w -> 1, Integer::sum));
+      .filter(s -> s.length() > 2)
+      .collect(toConcurrentMap(w -> w, w -> 1, Integer::sum));
 
     // sort entries in ascending order
     List<Map.Entry<String, Integer>> firstPass = scores.entrySet().stream()
+      .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
+      .filter(e -> (documents.size() <= 1 || e.getValue() > 1))
       .collect(Collectors.toList());
 
-    // if we are dealing with multiple documents, filter words
-    // whose frequency is 1
-    if(documents.size() > 1){
-      firstPass = firstPass.stream().filter(e -> e.getValue() > 1).collect(Collectors.toList());
-    }
+    final int k = documents.size() == 1 ? scores.size() : (int) Math.floor(Math.sqrt(scores.size()));
 
-    final List<String> secondPass = firstPass.stream().map(Map.Entry::getKey)
-      .filter(s -> s.length() >= 3)
-      .collect(Collectors.toList());
+    final List<String> secondPass = firstPass.stream()
+      .map(Map.Entry::getKey)
+      .map(String::toLowerCase)
+      .limit(k).collect(Collectors.toList());
 
     return Result.downcast(secondPass);
   }
