@@ -53,7 +53,7 @@ public interface Query {
    * @return a new query result object.
    */
   static Result labels(final List<Document> docs, Set<StopWords> stopWords){
-    return createQuery().labelsSearch(docs, stopWords);
+    return createQuery().labelsSearch(docs);
   }
 
   /**
@@ -114,18 +114,17 @@ public interface Query {
    * extracts labels from the qualifiedClassname.
    *
    * @param documents list of documents
-   * @param stopWords current set of stop words
    * @return a list of matching labels.
    */
-  default Result labelsSearch(List<Document> documents, Set<StopWords> stopWords){
+  default Result labelsSearch(List<Document> documents){
     // we don't accept plurals and stop words
     final List<String> allStrings = documents.stream()
-      .flatMap(s -> Arrays.stream(Strings.splits(s.transformedName())))
+      .flatMap(s -> Arrays.stream(Strings.wordSplit(s.transformedName())))
       .collect(Collectors.toList());
 
     // frequency calculation
     final Map<String, Integer> scores = allStrings.stream()
-      .filter(s -> s.length() > 2)
+      .filter(s -> (s.length() > 2))
       .collect(toConcurrentMap(w -> w, w -> 1, Integer::sum));
 
     // sort entries in ascending order
@@ -136,10 +135,14 @@ public interface Query {
 
     final int k = documents.size() == 1 ? scores.size() : (int) Math.floor(Math.sqrt(scores.size()));
 
-    final List<String> secondPass = firstPass.stream()
+    List<String> secondPass = firstPass.stream()
       .map(Map.Entry::getKey)
       .map(String::toLowerCase)
       .limit(k).collect(Collectors.toList());
+
+    secondPass = secondPass.isEmpty()
+      ? allStrings.stream().distinct().filter(s -> s.length() > 1).map(String::toLowerCase).collect(Collectors.toList())
+      : secondPass;
 
     return Result.downcast(secondPass);
   }

@@ -11,11 +11,13 @@ import com.vesperin.base.locators.UnitLocation;
 import com.vesperin.base.utils.Jdt;
 import com.vesperin.base.visitors.SkeletalVisitor;
 import com.vesperin.text.nouns.Noun;
+import com.vesperin.text.spelling.Corrector;
 import com.vesperin.text.spelling.StopWords;
 import com.vesperin.text.spelling.WordCorrector;
 import com.vesperin.text.utils.Jamas;
 import com.vesperin.text.utils.Strings;
 import org.eclipse.jdt.core.dom.ASTNode;
+import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.PackageDeclaration;
@@ -34,8 +36,8 @@ import java.util.stream.Collectors;
 
 import static com.vesperin.text.spelling.Dictionary.isDefined;
 import static com.vesperin.text.spelling.WordCorrector.containsWord;
-import static com.vesperin.text.spelling.WordCorrector.similarity;
 import static com.vesperin.text.spelling.WordCorrector.suggestCorrection;
+import static com.vesperin.text.utils.Strings.similarity;
 import static java.util.stream.Collectors.toList;
 
 /**
@@ -414,7 +416,7 @@ public interface Selection extends Executable {
     private static String transforms(String shortName){
 
       String   x  = Strings.cleanup(shortName);
-      String[] xa = Strings.splits(x);
+      String[] xa = Strings.wordSplit(x);
 
       if (xa.length == 0) return shortName;
 
@@ -564,7 +566,7 @@ public interface Selection extends Executable {
     static void addToWordList(String identifier, String container, Set<StopWords> stopWords, List<Word> wordList){
       if(!isThrowableAlike(identifier)){
         // make sure we have a valid split
-        String[] split = Strings.splits(identifier);
+        String[] split = Strings.wordSplit(identifier);
 
         for(String eachLabel : Strings.intersect(split, split)){
 
@@ -574,7 +576,7 @@ public interface Selection extends Executable {
 
           String currentLabel = eachLabel.toLowerCase(Locale.ENGLISH);
 
-          if(WordCorrector.onlyConsonantsOrVowels(currentLabel) || !containsWord(currentLabel)){
+          if(Corrector.onlyConsonantsOrVowels(currentLabel) || !containsWord(currentLabel)){
             final String newLabel = suggestCorrection(currentLabel).toLowerCase();
 
             if(similarity(currentLabel, newLabel) > 0.3f){
@@ -592,7 +594,7 @@ public interface Selection extends Executable {
     }
 
     void clear(){
-      synchronized (this.getClass()){
+      synchronized (this){
         this.visited.clear();
         this.items.clear();
       }
@@ -607,7 +609,7 @@ public interface Selection extends Executable {
     static boolean isValid(String identifier){
       final String  pattern         = Pattern.quote("_");
       final boolean underscored     = identifier.split(pattern).length == 1;
-      final boolean onlyConsonants  = WordCorrector.onlyConsonantsOrVowels(identifier);
+      final boolean onlyConsonants  = Corrector.onlyConsonantsOrVowels(identifier);
       final boolean tooSmall        = identifier.length() < 4;
 
       return !((underscored && onlyConsonants) || tooSmall);
@@ -721,29 +723,72 @@ public interface Selection extends Executable {
       super(whiteSet, stopWords);
     }
 
+    @Override public boolean visit(MethodDeclaration declaration) {
 
-    @Override public boolean visit(SimpleName simpleName) {
+      final Optional<MethodDeclaration> optionalMethod = Optional.ofNullable(declaration);
 
-      final Optional<MethodDeclaration> method = Optional.ofNullable(
-        Jdt.parent(MethodDeclaration.class, simpleName)
-      );
+      if(!optionalMethod.isPresent()) return false;
 
-      if(!method.isPresent()) return false;
+      final MethodDeclaration method = optionalMethod.get();
 
-      String methodName = method.get().getName().getIdentifier();
+      String methodName = method.getName().getIdentifier();
+      final String identifier = WordCorrector.trimSideNumbers(methodName, false);
       methodName        = methodName.toLowerCase(Locale.ENGLISH);
+
       if(!whiteSet.contains(methodName) && !whiteSet.isEmpty()) return false;
-
-      final String identifier = WordCorrector.trimSideNumbers(simpleName.getIdentifier(), false);
-
       if(visited.contains(identifier)) return false;
 
-      if(!isValid(identifier)){
+      final Optional<Block> optionalBlock = Jdt.getChildren(method).stream()
+        .filter(n -> ASTNode.BLOCK == n.getNodeType())
+        .map(n -> (Block)n)
+        .findFirst();
+
+      if(optionalBlock.isPresent()){
+
+        final Block block = optionalBlock.get();
+        final SimpleNameVisitor visitor = new SimpleNameVisitor();
+        block.accept(visitor);
+
+        final List<String> ws = visitor.names.stream().map(Strings::wordSplit).flatMap(Arrays::stream).collect(toList());
+        final String[] splits = ws.toArray(new String[ws.size()]);
+
+        for(String eachLabel : Strings.intersect(splits, splits)){
+          if(" ".equals(eachLabel) || eachLabel.isEmpty()
+            || StopWords.isStopWord(stopWords, eachLabel, NOUN.pluralOf(eachLabel)))
+            continue;
+
+          String currentLabel = eachLabel.toLowerCase(Locale.ENGLISH);
+
+          if(Corrector.onlyConsonantsOrVowels(currentLabel) || !containsWord(currentLabel)){
+            final String newLabel = suggestCorrection(currentLabel).toLowerCase();
+
+            if(similarity(currentLabel, newLabel) > 0.3f){
+              currentLabel = newLabel;
+            }
+          }
+
+          final String element    = currentLabel.toLowerCase(Locale.ENGLISH);
+          final Word   word       = createWord(element);
+
+          final String container  = resolveContainer(method.getName());
+          word.add(container);
+
+          items.add(word);
+
+        }
+
         visited.add(identifier);
-        return false;
       }
 
-      addToWordList(identifier, resolveContainer(simpleName), stopWords, items);
+
+      return false;
+    }
+  }
+
+  class SimpleNameVisitor extends SkeletalVisitor {
+    final Set<String> names = new HashSet<>();
+    @Override public boolean visit(SimpleName simpleName) {
+      names.add(simpleName.getIdentifier());
       return false;
     }
   }

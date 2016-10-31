@@ -1,13 +1,21 @@
 package com.vesperin.text.utils;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.regex.Pattern;
 
 /**
  * @author Huascar Sanchez
  */
 public class Similarity {
+  private static final Pattern SPACE_REG = Pattern.compile("\\s+");
+
   private Similarity(){
     throw new Error("Cannot be instantiated");
   }
@@ -264,4 +272,75 @@ public class Similarity {
   public static double lcSuffixScore(String x, String y){
     return Similarity.normalize(Strings.lcSuffix(x, y), x, y);
   }
+
+  /**
+   * Compute and return the profile of s, as defined by Ukkonen "Approximate
+   * string-matching with q-grams and maximal matches".
+   * https://www.cs.helsinki.fi/u/ukkonen/TCS92.pdf
+   * The profile is the number of occurrences of k-shingles, and is used to
+   * compute q-gram similarity, Jaccard index, etc.
+   * Pay attention: the memory requirement of the profile can be up to
+   * k * size of the string
+   *
+   * @param string
+   * @return the profile of this string, as an unmodifiable Map
+   */
+  private static Map<String, Integer> getProfile(final String string) {
+    Map<String, Integer> shingles = new HashMap<>();
+
+    String string_no_space = SPACE_REG.matcher(string).replaceAll(" ");
+    for (int i = 0; i < (string_no_space.length() - 1/*default k*/ + 1); i++) {
+      String shingle = string_no_space.substring(i, i + 1/*default k*/);
+
+      if (shingles.containsKey(shingle)) {
+        shingles.put(shingle, shingles.get(shingle) + 1);
+
+      } else {
+        shingles.put(shingle, 1);
+
+      }
+    }
+
+    return Collections.unmodifiableMap(shingles);
+  }
+
+  /**
+   * Compute Jaccard index: |A inter B| / |A union B|.
+   * @param s1 first string
+   * @param s2 second string
+   * @return Jaccard index
+   */
+  public static double jaccard(final String s1, final String s2) {
+    Map<String, Integer> profile1 = getProfile(s1);
+    Map<String, Integer> profile2 = getProfile(s2);
+
+    Set<String> union = new HashSet<>();
+    union.addAll(profile1.keySet());
+    union.addAll(profile2.keySet());
+
+    int inter = 0;
+
+    for (String key : union) {
+      if (profile1.containsKey(key) && profile2.containsKey(key)) {
+        inter++;
+      }
+    }
+
+    double result = 1.0 * inter / union.size();
+    result = Double.isNaN(result) ? 0.0 : result;
+
+    return result;
+  }
+
+  /**
+   * Computes the Jaccard distance between two strings s1 and s2.
+   *
+   * @param s1 first string
+   * @param s2 second string
+   * @return Jaccard distance
+   */
+  public static double jaccardDistance(String s1, String s2){
+    return 1.0 - Similarity.jaccard(s1, s2);
+  }
+
 }

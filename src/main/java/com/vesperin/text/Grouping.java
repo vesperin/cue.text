@@ -212,21 +212,21 @@ public interface Grouping {
       final List<String> elements = mapping.keySet().stream().collect(Collectors.toList());
 
       final List<String> words = elements.stream()
-        .map(Strings::splits)
+        .map(Strings::wordSplit)
         .flatMap(Arrays::stream)
         .collect(Collectors.toList());
 
-      final Map<String, Double> typicalityRegion = Strings.typicalityRegion(words);
+      final Map<String, Double> typicalityRegion = Strings.typicalityQuery(words);
 
       final String typicalWord      = mostTypicalWord(typicalityRegion);
       final double typicalWordScore = typicalityRegion.get(typicalWord);
 
       // calculates the cluster radius
-      final double clusterRadius       = clusterRadius(typicalityRegion, 0.3);
+      final double clusterRadius       = clusterRadius(typicalityRegion, 1.0);
       final Group group = new Grouping.BasicGroup();
       for(String eachElement : elements){
 
-        final String[]    splits  = Strings.splits(eachElement);
+        final String[]    splits  = Strings.wordSplit(eachElement);
         final Set<String> unique  = Strings.intersect(splits, splits);
 
         for(String eachWord : unique){
@@ -246,19 +246,9 @@ public interface Grouping {
 
   static String mostTypicalWord(Map<String, Double> region){
     return region.keySet().stream()
-      .sorted((a, b) -> Double.compare(region.get(a), region.get(b)))
+      .sorted((a, b) -> Double.compare(region.get(b), region.get(a)))
       .findFirst().orElse(null);
   }
-
-//  static double clusterRadius(String typical, Set<String> words){
-//    final double k              = 2.0D * (words.size() * 1.0D);
-//    final double sumOfDistances = words.stream()
-//      .mapToDouble(
-//        s -> Math.pow(Similarity.damerauLevenshteinScore(typical, s), 2)
-//      ).sum();
-//
-//    return ((1/(k)) * sumOfDistances);
-//  }
 
   static double clusterRadius(Map<String, Double> region, double weight){
 
@@ -559,8 +549,8 @@ public interface Grouping {
 //      String x = Strings.cleanup(a.shortName());
 //      String y = Strings.cleanup(b.shortName());
 //
-      String[] xa = Strings.splits(x);
-      String[] ya = Strings.splits(y);
+      String[] xa = Strings.wordSplit(x);
+      String[] ya = Strings.wordSplit(y);
 
       if (xa.length == 0 || ya.length == 0) return false;
 //
@@ -634,20 +624,11 @@ public interface Grouping {
         .collect(Collectors.toList());
     }
 
-//    static boolean validScenario(String child, String parent){
-////
-////      child   = Strings.cleanup(child);
-////      parent  = Strings.cleanup(parent);
-//
-//      String suffix = Strings.sharedSuffix(child, parent);
-//      return WordCorrector.isValidWord(suffix) && Strings.lcSuffix(child, parent) >= 4;
-//    }
-
 
     private static double calculateSuitableDistance(Document a, Document b) throws IllegalStateException {
 
-      String x = a.transformedName(); //Noun.toSingular(a.shortName());
-      String y = b.transformedName(); //Noun.toSingular(b.shortName());
+      String x = a.transformedName();
+      String y = b.transformedName();
 
       return Similarity.lcSuffixScore(x, y);
     }

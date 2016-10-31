@@ -86,7 +86,7 @@ public enum Dictionary implements BagOfWords {
 
       if(line.length() <= 2)            continue;
       if(isNumber(line))                continue;
-      if(WordCorrector.onlyConsonantsOrVowels(line))  continue;
+      if(Corrector.onlyConsonantsOrVowels(line))  continue;
 
 
       dict.add(line); // each line is a word

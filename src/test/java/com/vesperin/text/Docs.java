@@ -26,7 +26,8 @@ public class Docs {
   }
 
   public static List<String> qualifiedClassNames(){
-    return Arrays.asList("org.dyn4j.dynamics.joint.MotorJoint",
+    return Arrays.asList("org.dyn4j.dynamics.joint.MotorJoint", "com.jme3.audio.ios.IosEFX",
+      "com.jme3.renderer.ios.JmeIosGLES",
       "com.jme3.light.DirectionalLight", "org.ode4j.ode.internal.gimpact.GimTriCollision",
       "com.jme3.input.event.MouseMotionEvent",
       "net.smert.jreactphysics3d.collision.broadphase.BroadPhaseAlgorithm",

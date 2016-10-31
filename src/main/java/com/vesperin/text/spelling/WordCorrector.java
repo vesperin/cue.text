@@ -1,7 +1,6 @@
 package com.vesperin.text.spelling;
 
 import com.vesperin.text.nouns.Noun;
-import com.vesperin.text.utils.Similarity;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -21,6 +20,8 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static com.vesperin.text.spelling.Corrector.isNumber;
+import static com.vesperin.text.spelling.Corrector.onlyConsonantsOrVowels;
+import static com.vesperin.text.utils.Strings.similarity;
 
 /**
  * @author Huascar Sanchez
@@ -57,13 +58,6 @@ public enum WordCorrector implements Corrector {
     return WordCorrector.getInstance().correct(word);
   }
 
-  public static boolean onlyConsonantsOrVowels(String word){
-    return Corrector.onlyConsonants(word) || Corrector.onlyVowels(word);
-  }
-
-  public static double similarity(String word, String suggestion){
-    return Similarity.damerauLevenshteinScore(word, suggestion);
-  }
 
   @Override public String correct(String word, float accuracy) {
 
@@ -190,7 +184,7 @@ public enum WordCorrector implements Corrector {
           if(each.length() <= 2)            continue;
           if(onlyConsonantsOrVowels(each))  continue;
           if(isNumber(each))                continue;
-          if(StopWords.ENGLISH.isStopWord(line)) continue;
+          if(StopWords.ENGLISH.isStopWord(each)) continue;
 
           String updatedEach = trimSideNumbers(each, true);
           updatedEach        = Noun.get().isPlural(updatedEach)

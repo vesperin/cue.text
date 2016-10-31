@@ -3,6 +3,8 @@ package com.vesperin.text.utils;
 import com.google.common.collect.Sets;
 import com.vesperin.text.spelling.Corrector;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -12,7 +14,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
@@ -21,23 +22,20 @@ import static java.util.stream.Collectors.toList;
  * @author Huascar Sanchez
  */
 public class Strings {
-  private static final String CAMEL_CASE = "((?<!(^|[A-Z]))(?=[A-Z])|(?<!^)(?=[A-Z][a-z]))|((?<=[a-zA-Z])(?=[0-9]))|((?<=[0-9])(?=[a-zA-Z]))|_";
-
   private Strings(){}
 
-  public static String[] splits(String word){
-    String[] split = word.split(CAMEL_CASE);
-    if(split.length == 1){
-      split = split[0].split(Pattern.quote("_"));
-    }
+  public static double similarity(String word, String suggestion){
+    return Similarity.damerauLevenshteinScore(word, suggestion);
+  }
 
-    return split;
+  public static String[] wordSplit(String word){
+    return Splits.removeIllegal(Splits.wordTokenize(word));
   }
 
   public static Set<String> intersect(String x, String y){
     return Strings.intersect(
-      Strings.splits(x),
-      Strings.splits(y)
+      Strings.wordSplit(x),
+      Strings.wordSplit(y)
     );
   }
 
@@ -71,32 +69,54 @@ public class Strings {
     return Sets.intersection(aa, bb);
   }
 
+  /**
+   * Choose the K value from a list of strings.
+   * @param data list of strings.
+   * @return the k value
+   */
+  public static int chooseK(List<String> data){
+    if(Objects.isNull(data)) return 0;
+    if(data.isEmpty())       return 0;
+
+    return (int) Math.ceil(Math.sqrt(data.size()));
+  }
+
+  /**
+   * Sorts string by their typicality (or membership); i.e., how closely related each string
+   * element is to the rest of string elements in that list.
+   *
+   * @param data unsorted list of string elements.
+   * @return a new sorted list of string elements.
+   */
+  public static List<String> typicalityRank(List<String> data){
+    return typicalityRank(chooseK(data), data);
+  }
+
 
   /**
    * Sorts string by their typicality (or membership); i.e., how closely related each string
    * element is to the rest of string elements in that list.
    *
    * @param k number of string elements (in the list) to return.
-   * @param club unsorted list of string elements.
-   * @param stopWords words we should ignore.
+   * @param data unsorted list of string elements.
    * @return a new sorted list of string elements.
    */
-  public static List<String> typicalitySorting(int k, List<String> club, final Set<String> stopWords){
+  public static List<String> typicalityRank(int k, List<String> data){
 
-    if(club.size() < 2) return club;
+    if(data.size() < 2) return data;
 
-    k = k < 1 ? (int) Math.ceil(Math.sqrt(club.size())) : k;
+    k = k < 1 ? chooseK(data) : k;
 
-    Collections.shuffle(club);
+    Collections.shuffle(data);
 
-    final Map<String, Double> T = typicalityRegion(club);
+    final Map<String, Double> T = typicalityQuery(data);
 
     final List<String> ranked = T.keySet().stream()
-      .sorted((a, b) -> Double.compare(T.get(a), T.get(b)))
+      .sorted((a, b) -> Double.compare(T.get(b), T.get(a)))
       .collect(toList());
 
     return ranked.stream()
-      .filter(s -> !Objects.isNull(s) && !stopWords.contains(s)).limit(k)
+      .filter(s -> !Objects.isNull(s)).limit(k)
       .collect(toList());
   }
 
@@ -106,24 +126,22 @@ public class Strings {
    * @param club the list of strings.
    * @return the typicality region
    */
-  public static Map<String, Double> typicalityRegion(List<String> club){
-    final Map<String, Double> T = new HashMap<>();
+  public static Map<String, Double> typicalityQuery(List<String> club){
+    final Map<StringKey, Double> T = new HashMap<>();
 
-    final Set<String>       clubSet   = club.stream().collect(Collectors.toSet());
-    final Set<List<String>> cartesian = Sets.cartesianProduct(Arrays.asList(clubSet, clubSet));
+    final Set<StringKey>       clubSet   = club.stream().map(StringKey::new).collect(Collectors.toSet());
+    final Set<List<StringKey>> cartesian = Sets.cartesianProduct(Arrays.asList(clubSet, clubSet));
 
-    for(String code : clubSet){
-      T.put(code, 0.0D);
-    }
+    for(StringKey code : clubSet){ T.put(code, 0.0D); }
 
     double t1  = 1.0D / (T.keySet().size()) * Math.sqrt(2.0 * Math.PI);
     double t2  = 2.0 * Math.pow(0.3, 2);
 
-    for(List<String> pair : cartesian){
-      final String si = pair.get(0);
-      final String sj = pair.get(1);
+    for(List<StringKey> pair : cartesian){
+      final StringKey si = pair.get(0);
+      final StringKey sj = pair.get(1);
 
-      double w = gaussianKernel(t1, t2, si, sj);
+      double w = gaussianKernel(t1, t2, si.value, sj.value);
 
       double Tsi = T.get(si) + w;
       double Tsj = T.get(sj) + w;
@@ -132,25 +150,47 @@ public class Strings {
       T.put(sj, Tsj);
     }
 
-   return T;
+    final Map<String, Double>   R = new HashMap<>();
+
+    for(StringKey each : T.keySet()){
+      if(!R.containsKey(each.value)){
+        R.put(each.value, T.get(each));
+      } else {
+        final double update   = T.get(each);
+        final double current  = R.get(each.value);
+        final double max      = Math.max(update, current);
+
+        R.put(each.value, max);
+      }
+    }
+
+    return R;
+  }
+
+  private static class StringKey {
+    String value;
+
+    StringKey(String value) {
+      this.value = value;
+    }
+  }
+
+  private static double round(double value, int places){
+    return new BigDecimal(value)
+      .setScale(places, RoundingMode.HALF_UP)
+      .doubleValue();
   }
 
   private static double gaussianKernel(double t1, double t2, String oi, String oj){
-    return t1 * Math.exp(-(Math.pow(Similarity.damerauLevenshteinScore(oi, oj), 2) / t2));
+    final double distance = Similarity.jaccardDistance(oi, oj);
+    return t1 * Math.exp(-(Math.pow(distance, 2) / t2));
   }
 
   public static int lcSuffix(String x, String y){
-//
-//    x = cleanup(x);
-//    y = cleanup(y);
-
     return sharedSuffix(x, y).length();
   }
 
   public static String cleanup(String text){
-    // if the text contains numbers at the end of the string
-    // if the text contains 2x2 notation
-    // if
 
     String curated = text;
     boolean endsWithTripleLetters = curated.matches(".*[A-Z]{3}");
@@ -183,7 +223,7 @@ public class Strings {
       }
     }
 
-
+    curated = curated.isEmpty() ? text : curated;
     curated = Character.isUpperCase(curated.charAt(curated.length() - 1))
       ? curated.substring(0, curated.length() - 1)
       : curated;
@@ -215,12 +255,17 @@ public class Strings {
   }
 
   public static String firstCharUpperCase(String word){
+    Objects.requireNonNull(word);
+
+    if(word.isEmpty())       return word;
+    if(Character.isUpperCase(word.charAt(0))) return word;
+
     return Character.toUpperCase(word.charAt(0)) + word.substring(1);
   }
 
   public static void main(String[] args) {
-    String x = Strings.cleanup("LaVida3DTriangle");
-    System.out.println(x);
+    String[] x = Strings.wordSplit("La vida \n super sonicCamel");
+    Arrays.stream(x).forEach(System.out::println);
   }
 
 }

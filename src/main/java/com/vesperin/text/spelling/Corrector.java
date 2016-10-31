@@ -27,6 +27,10 @@ public interface Corrector {
    */
   String correct(String word, float accuracy);
 
+  static boolean onlyConsonantsOrVowels(String word){
+    return onlyConsonants(word) || onlyVowels(word);
+  }
+
   static boolean onlyConsonants(String word) {
     // thx to http://stackoverflow.com/q/26536829/26536928
     return !(word == null || word.isEmpty())

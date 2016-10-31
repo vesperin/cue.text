@@ -32,10 +32,7 @@ public class WordSelectionTest {
     assertThat(words.isEmpty(), is(false));
 
     final List<Word> relevant = extractor.frequentWords(words.size(), code, Selection.inspectMethodBody(Collections.emptySet(), StopWords.all()));
-
-    for(Word each : relevant){
-      System.out.println(each.container() + "#" + each.element());
-    }
+    relevant.forEach(System.out::println);
 
   }
 
@@ -70,7 +67,14 @@ public class WordSelectionTest {
     );
 
     final List<Word> words = extractor.frequentWords(2, code, Selection.inspectMethodBody(Collections.emptySet(), StopWords.all()));
+    final List<Word> words2 = extractor.frequentWords(2, code, Selection.inspectMethodName(Collections.emptySet(), StopWords.all()));
+    final List<Word> words3 = extractor.frequentWords(2, code, Selection.inspectClassName(Collections.emptySet(), StopWords.all()));
     assertThat(words.isEmpty(), is(false));
+    assertThat(words2.isEmpty(), is(false));
+
+    assertThat(StopWords.isStopWord(StopWords.all(), "Query"), is(true));
+
+    assertThat(words3.isEmpty(), is(true));
   }
 
   @Test public void testLatentWords() throws Exception {

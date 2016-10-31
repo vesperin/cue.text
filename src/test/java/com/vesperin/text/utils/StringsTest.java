@@ -1,13 +1,16 @@
 package com.vesperin.text.utils;
 
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.vesperin.text.Grouping;
 import com.vesperin.text.Selection;
+import com.vesperin.text.spelling.StopWords;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
@@ -19,10 +22,12 @@ import static org.junit.Assert.assertTrue;
  */
 public class StringsTest {
   @Test public void testTypicalitySorting() throws Exception {
-    final List<String> unsorted = Arrays.asList("Joint", "Joint", "Jo", "Sphere", "Sweep");
-    final List<String> sorted   = Strings.typicalitySorting(unsorted.size(), unsorted, ImmutableSet.of("foo"));
+    final List<String> unsorted = Arrays.asList("Joint", "Jo", "Join", "Join", "Sphere", "Sweep");
+    StopWords stopWords = StopWords.CUSTOM;
+    stopWords.add("foo");
+    final List<String> sorted   = Strings.typicalityRank(unsorted.size(), unsorted);
 
-    assertEquals("[Joint, Jo, Sphere, Sweep]", sorted.toString());
+    assertEquals("[Join, Joint, Jo, Sphere, Sweep]", sorted.toString());
   }
 
   @Test public void testGroupsPruning() throws Exception {
@@ -38,7 +43,18 @@ public class StringsTest {
 
     assertTrue(!groups.isEmpty());
 
-    System.out.println(groups);
+    final Set<String> oracle = Sets.newHashSet("DBox", "Box", "BoxShape");
+
+    for(Grouping.Group each : groups){
+      final Set<String> matches = Grouping.Group.items(each, Selection.Document.class)
+        .stream()
+        .map(Selection.Document::shortName)
+        .collect(Collectors.toSet());
+
+      for(String eachName : matches){
+        assertThat(oracle.contains(eachName), is(true));
+      }
+    }
 
   }
 
