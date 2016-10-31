@@ -1,6 +1,7 @@
 package com.vesperin.text.spelling;
 
 import com.vesperin.text.nouns.Noun;
+import com.vesperin.text.utils.Similarity;
 import com.vesperin.text.utils.Strings;
 
 import java.io.IOException;
@@ -9,7 +10,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -22,7 +22,6 @@ import java.util.stream.Stream;
 
 import static com.vesperin.text.utils.Strings.isNumber;
 import static com.vesperin.text.utils.Strings.onlyConsonantsOrVowels;
-import static com.vesperin.text.utils.Strings.similarity;
 
 /**
  * @author Huascar Sanchez
@@ -83,7 +82,7 @@ public enum SpellCorrector implements Corrector {
         if(e3.isPresent()) winners.add(e3.get());
 
         final Optional<String> winner = winners.stream().max(
-          (a, b) -> Double.compare(similarity(word, a), similarity(word, b))
+          (a, b) -> Double.compare(Similarity.jaccard(word, a), Similarity.jaccard(word, b))
         );
 
         if(winner.isPresent()) return winner.get();
@@ -185,9 +184,8 @@ public enum SpellCorrector implements Corrector {
           if(each.length() <= 2)            continue;
           if(onlyConsonantsOrVowels(each))  continue;
           if(isNumber(each))                continue;
-          if(StopWords.ENGLISH.isStopWord(each)) continue;
 
-          String updatedEach = trimSideNumbers(each, true);
+          String updatedEach = Strings.trimSideNumbers(each, true);
           updatedEach        = Noun.get().isPlural(updatedEach)
             ? Noun.get().singularOf(updatedEach)
             : updatedEach;
@@ -204,15 +202,4 @@ public enum SpellCorrector implements Corrector {
   }
 
 
-  public static String trimSideNumbers(String each, boolean lowercase){
-    String updatedEach;
-    if(Strings.startsWithNumbers(each) || Strings.endsWithNumbers(each)) {
-      updatedEach = Strings.trimRight(Strings.trimLeft(each));
-      updatedEach = lowercase ? updatedEach.toLowerCase(Locale.ENGLISH) : updatedEach;
-    } else {
-      updatedEach = lowercase ? each.toLowerCase(Locale.ENGLISH) : each;
-    }
-
-    return updatedEach;
-  }
 }

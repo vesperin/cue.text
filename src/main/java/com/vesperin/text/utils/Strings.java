@@ -24,10 +24,6 @@ import static java.util.stream.Collectors.toList;
 public class Strings {
   private Strings(){}
 
-  public static double similarity(String word, String suggestion){
-    return Similarity.damerauLevenshteinScore(word, suggestion);
-  }
-
   public static String[] wordSplit(String word){
     return Splits.removeIllegal(Splits.wordTokenize(word));
   }
@@ -234,6 +230,18 @@ public class Strings {
     }
 
     return false;
+  }
+
+  public static String trimSideNumbers(String each, boolean lowercase){
+    String updatedEach;
+    if(startsWithNumbers(each) || endsWithNumbers(each)) {
+      updatedEach = trimRight(trimLeft(each));
+      updatedEach = lowercase ? updatedEach.toLowerCase(Locale.ENGLISH) : updatedEach;
+    } else {
+      updatedEach = lowercase ? each.toLowerCase(Locale.ENGLISH) : each;
+    }
+
+    return updatedEach;
   }
 
   private static class StringKey {

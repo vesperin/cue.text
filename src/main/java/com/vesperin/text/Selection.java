@@ -14,6 +14,7 @@ import com.vesperin.text.nouns.Noun;
 import com.vesperin.text.spelling.SpellCorrector;
 import com.vesperin.text.spelling.StopWords;
 import com.vesperin.text.utils.Jamas;
+import com.vesperin.text.utils.Similarity;
 import com.vesperin.text.utils.Strings;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.Block;
@@ -36,7 +37,6 @@ import java.util.stream.Collectors;
 import static com.vesperin.text.spelling.Dictionary.isDefined;
 import static com.vesperin.text.spelling.SpellCorrector.containsWord;
 import static com.vesperin.text.spelling.SpellCorrector.suggestCorrection;
-import static com.vesperin.text.utils.Strings.similarity;
 import static java.util.stream.Collectors.toList;
 
 /**
@@ -578,7 +578,7 @@ public interface Selection extends Executable {
           if(Strings.onlyConsonantsOrVowels(currentLabel) || !containsWord(currentLabel)){
             final String newLabel = suggestCorrection(currentLabel).toLowerCase();
 
-            if(similarity(currentLabel, newLabel) > 0.3f){
+            if(Similarity.jaccard(currentLabel, newLabel) > 0.3D){
               currentLabel = newLabel;
             }
           }
@@ -699,7 +699,7 @@ public interface Selection extends Executable {
       methodName        = methodName.toLowerCase(Locale.ENGLISH);
       if(!whiteSet.contains(methodName) && !whiteSet.isEmpty()) return false;
 
-      final String identifier = SpellCorrector.trimSideNumbers(simpleName.getIdentifier(), false);
+      final String identifier = Strings.trimSideNumbers(simpleName.getIdentifier(), false);
 
       if(visited.contains(identifier)) return false;
       if(!isValid(identifier)){
@@ -731,7 +731,7 @@ public interface Selection extends Executable {
       final MethodDeclaration method = optionalMethod.get();
 
       String methodName = method.getName().getIdentifier();
-      final String identifier = SpellCorrector.trimSideNumbers(methodName, false);
+      final String identifier = Strings.trimSideNumbers(methodName, false);
       methodName        = methodName.toLowerCase(Locale.ENGLISH);
 
       if(!whiteSet.contains(methodName) && !whiteSet.isEmpty()) return false;
@@ -761,7 +761,7 @@ public interface Selection extends Executable {
           if(Strings.onlyConsonantsOrVowels(currentLabel) || !containsWord(currentLabel)){
             final String newLabel = suggestCorrection(currentLabel).toLowerCase();
 
-            if(similarity(currentLabel, newLabel) > 0.3f){
+            if(Similarity.jaccard(currentLabel, newLabel) > 0.3f){
               currentLabel = newLabel;
             }
           }

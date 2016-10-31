@@ -28,7 +28,8 @@ public class SpellCheckingTest {
 
     for(String each : words){
       final String correction = suggestCorrection(each);
-      assertThat(corrections.contains(correction), is(true));
+      System.out.println(correction);
+       assertThat(corrections.contains(correction), is(true));
     }
   }
 }

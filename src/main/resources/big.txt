@@ -527,6 +527,8 @@ Sometimes there is more than one reasonable way to convert an English phrase int
 
 Beginning with the prose form of the name:
 
+String String string
+
 Convert the phrase to plain ASCII and remove any apostrophes. For example, "Müller's algorithm" might become "Muellers algorithm".
 Divide this result into words, splitting on spaces and any remaining punctuation (typically hyphens).
 Recommended: if any word already has a conventional camel-case appearance in common usage, split this into its constituent parts (e.g., "AdWords" becomes "ad words"). Note that a word such as "iOS" is not really in camel case per se; it defies any convention, so this recommendation does not apply.
