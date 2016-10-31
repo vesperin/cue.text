@@ -1,6 +1,7 @@
 package com.vesperin.text.spelling;
 
 import com.vesperin.text.nouns.Noun;
+import com.vesperin.text.utils.Strings;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -19,21 +20,21 @@ import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static com.vesperin.text.spelling.Corrector.isNumber;
-import static com.vesperin.text.spelling.Corrector.onlyConsonantsOrVowels;
+import static com.vesperin.text.utils.Strings.isNumber;
+import static com.vesperin.text.utils.Strings.onlyConsonantsOrVowels;
 import static com.vesperin.text.utils.Strings.similarity;
 
 /**
  * @author Huascar Sanchez
  */
-public enum WordCorrector implements Corrector {
+public enum SpellCorrector implements Corrector {
   INSTANCE(loadFile());
 
   private static final String CAMEL_CASE = "((?<!(^|[A-Z]))(?=[A-Z])|(?<!^)(?=[A-Z][a-z]))|_";
 
   private SortedMap<String,Integer> wordToFrequency;
 
-  WordCorrector(Path index){
+  SpellCorrector(Path index){
     this.wordToFrequency = new TreeMap<>();
 
     try {
@@ -44,8 +45,8 @@ public enum WordCorrector implements Corrector {
   }
 
 
-  public static WordCorrector getInstance(){
-    return WordCorrector.INSTANCE;
+  public static SpellCorrector getInstance(){
+    return SpellCorrector.INSTANCE;
   }
 
   /**
@@ -55,7 +56,7 @@ public enum WordCorrector implements Corrector {
    * @return a suggested correction.
    */
   public static String suggestCorrection(String word){
-    return WordCorrector.getInstance().correct(word);
+    return SpellCorrector.getInstance().correct(word);
   }
 
 
@@ -108,7 +109,7 @@ public enum WordCorrector implements Corrector {
   }
 
   public static boolean containsWord(String word){
-    return WordCorrector.getInstance().contains(word);
+    return SpellCorrector.getInstance().contains(word);
   }
 
   private boolean contains(String word){
@@ -205,8 +206,8 @@ public enum WordCorrector implements Corrector {
 
   public static String trimSideNumbers(String each, boolean lowercase){
     String updatedEach;
-    if(Corrector.startsWithNumbers(each) || Corrector.endsWithNumbers(each)) {
-      updatedEach = Corrector.trimRight(Corrector.trimLeft(each));
+    if(Strings.startsWithNumbers(each) || Strings.endsWithNumbers(each)) {
+      updatedEach = Strings.trimRight(Strings.trimLeft(each));
       updatedEach = lowercase ? updatedEach.toLowerCase(Locale.ENGLISH) : updatedEach;
     } else {
       updatedEach = lowercase ? each.toLowerCase(Locale.ENGLISH) : each;

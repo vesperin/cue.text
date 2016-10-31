@@ -1,6 +1,7 @@
 package com.vesperin.text.spelling;
 
 import com.google.common.io.CharStreams;
+import com.vesperin.text.utils.Strings;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -119,7 +120,7 @@ public enum StopWords implements BagOfWords {
   public static boolean isStopWord(Set<StopWords> corpus, String... word){
     for(String w : word){
       for(StopWords s : corpus){
-        if(s.isStopWord(w) || Corrector.isNumber(w)) return true;
+        if(s.isStopWord(w) || Strings.isNumber(w)) return true;
       }
     }
 

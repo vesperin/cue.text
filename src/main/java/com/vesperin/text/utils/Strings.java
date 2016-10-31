@@ -1,7 +1,6 @@
 package com.vesperin.text.utils;
 
 import com.google.common.collect.Sets;
-import com.vesperin.text.spelling.Corrector;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -10,6 +9,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -61,7 +61,7 @@ public class Strings {
   }
 
   private static Set<String> intersect(List<String> a, List<String> b){
-    final Predicate<String> skipNumbers     = w -> !Corrector.isNumber(w);
+    final Predicate<String> skipNumbers     = w -> !isNumber(w);
     final Predicate<String> skipSingleChar  = w -> w.length() > 1 && !w.isEmpty();
     final Set<String> aa = a.stream().filter(skipNumbers.or(skipSingleChar)).collect(Collectors.toSet());
     final Set<String> bb = b.stream().filter(skipNumbers.or(skipSingleChar)).collect(Collectors.toSet());
@@ -74,7 +74,7 @@ public class Strings {
    * @param data list of strings.
    * @return the k value
    */
-  public static int chooseK(List<String> data){
+  private static int chooseK(List<String> data){
     if(Objects.isNull(data)) return 0;
     if(data.isEmpty())       return 0;
 
@@ -165,6 +165,75 @@ public class Strings {
     }
 
     return R;
+  }
+
+  public static boolean isNumber(String input) {
+    // thx to http://stackoverflow.com/q/15111420/15111450
+    return !(input == null || input.isEmpty()) && input.matches("\\d+");
+  }
+
+  public static boolean startsWithNumbers(String input){
+    return !(input == null || input.isEmpty()) && Character.isDigit(input.charAt(0));
+  }
+
+  public static boolean endsWithNumbers(String input){
+    return !(input == null || input.isEmpty()) && Character.isDigit(input.charAt(input.length() - 1));
+  }
+
+  public static String trimLeft(String input){
+    final char[] chars = input.toCharArray();
+    int to = 0; for(char each : chars){
+      if(Character.isAlphabetic(each)) { break; }
+      if(Character.isDigit(each))      { to++;  }
+    }
+
+    return input.substring(to, input.length());
+  }
+
+  public static String trimRight(String input){
+    final char[] chars = input.toCharArray();
+    int to = chars.length; for(int j = chars.length - 1; j >= 0; j--){
+      final char each = chars[j];
+      if(Character.isAlphabetic(each)) { break; }
+      if(Character.isDigit(each))      { to--;  }
+    }
+
+    return input.substring(0, to);
+  }
+
+  public static boolean onlyConsonantsOrVowels(String word){
+    return onlyConsonants(word) || onlyVowels(word);
+  }
+
+  public static boolean onlyConsonants(String word) {
+    // thx to http://stackoverflow.com/q/26536829/26536928
+    return !(word == null || word.isEmpty())
+      && !hasAVowel(word.toLowerCase(Locale.ENGLISH));//.matches("^(?!.*(NG|ng)).[^aeyiuo]*$");
+  }
+
+  public static boolean onlyVowels(String word) {
+    // thx to http://stackoverflow.com/q/26536829/26536928
+    return !(word == null || word.isEmpty())
+      && onlyConsonants(word);
+  }
+
+  public static boolean hasAVowel(final String input){
+    for (int i = 0; i < input.length(); i++) {
+      switch (input.charAt(i)) {
+        case 'a':
+          return true;
+        case 'e':
+          return true;
+        case 'i':
+          return true;
+        case 'o':
+          return true;
+        case 'u':
+          return true;
+      }
+    }
+
+    return false;
   }
 
   private static class StringKey {

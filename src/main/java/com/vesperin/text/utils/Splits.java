@@ -1,7 +1,5 @@
 package com.vesperin.text.utils;
 
-import com.vesperin.text.spelling.Corrector;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -178,8 +176,8 @@ public final class Splits {
 
       if (s != null
         && (s.length() > 1
-        && !Corrector.isNumber(s)
-        && !Corrector.onlyConsonantsOrVowels(s))) {
+        && !Strings.isNumber(s)
+        && !Strings.onlyConsonantsOrVowels(s))) {
 
         s = camelizeFirst ? Strings.firstCharUpperCase(s) : s;
         list.add(s);

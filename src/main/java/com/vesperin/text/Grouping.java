@@ -543,7 +543,7 @@ public interface Grouping {
       String y = b.transformedName();
 
 //      String suffix = Strings.sharedSuffix(x, y);
-//      return WordCorrector.isValidWord(suffix) && suffix.length() >= 3 && !suffix.equals(suffix.toLowerCase());
+//      return SpellCorrector.isValidWord(suffix) && suffix.length() >= 3 && !suffix.equals(suffix.toLowerCase());
 
 
 //      String x = Strings.cleanup(a.shortName());
@@ -561,13 +561,13 @@ public interface Grouping {
 //      yS = Noun.toSingular(yS);
 //
 //
-//      xS = WordCorrector.isValidWord(xS.toLowerCase())
+//      xS = SpellCorrector.isValidWord(xS.toLowerCase())
 //        ? xS
-//        : Strings.firstCharUpperCase(WordCorrector.suggestCorrection(xS.toLowerCase()));
+//        : Strings.firstCharUpperCase(SpellCorrector.suggestCorrection(xS.toLowerCase()));
 //
-//      yS = WordCorrector.isValidWord(yS.toLowerCase())
+//      yS = SpellCorrector.isValidWord(yS.toLowerCase())
 //        ? yS
-//        : Strings.firstCharUpperCase(WordCorrector.suggestCorrection(yS.toLowerCase()));
+//        : Strings.firstCharUpperCase(SpellCorrector.suggestCorrection(yS.toLowerCase()));
 //
       return xS.equals(yS);
     }

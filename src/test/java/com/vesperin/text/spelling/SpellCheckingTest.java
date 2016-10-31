@@ -5,7 +5,7 @@ import org.junit.Test;
 import java.util.HashSet;
 import java.util.Set;
 
-import static com.vesperin.text.spelling.WordCorrector.suggestCorrection;
+import static com.vesperin.text.spelling.SpellCorrector.suggestCorrection;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 

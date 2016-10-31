@@ -1,5 +1,7 @@
 package com.vesperin.text.spelling;
 
+import com.vesperin.text.utils.Strings;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -9,7 +11,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
-import static com.vesperin.text.spelling.Corrector.isNumber;
+import static com.vesperin.text.utils.Strings.isNumber;
 
 /**
  * @author Huascar Sanchez
@@ -46,7 +48,7 @@ public enum Dictionary implements BagOfWords {
    */
   public static boolean isDefined(String... word){
     for(String w : word){
-      if(Dictionary.ENGLISH.contains(w) && !Corrector.isNumber(w)) return true;
+      if(Dictionary.ENGLISH.contains(w) && !Strings.isNumber(w)) return true;
     }
 
     return false;
@@ -86,7 +88,7 @@ public enum Dictionary implements BagOfWords {
 
       if(line.length() <= 2)            continue;
       if(isNumber(line))                continue;
-      if(Corrector.onlyConsonantsOrVowels(line))  continue;
+      if(Strings.onlyConsonantsOrVowels(line))  continue;
 
 
       dict.add(line); // each line is a word

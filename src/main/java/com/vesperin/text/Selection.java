@@ -11,9 +11,8 @@ import com.vesperin.base.locators.UnitLocation;
 import com.vesperin.base.utils.Jdt;
 import com.vesperin.base.visitors.SkeletalVisitor;
 import com.vesperin.text.nouns.Noun;
-import com.vesperin.text.spelling.Corrector;
+import com.vesperin.text.spelling.SpellCorrector;
 import com.vesperin.text.spelling.StopWords;
-import com.vesperin.text.spelling.WordCorrector;
 import com.vesperin.text.utils.Jamas;
 import com.vesperin.text.utils.Strings;
 import org.eclipse.jdt.core.dom.ASTNode;
@@ -35,8 +34,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static com.vesperin.text.spelling.Dictionary.isDefined;
-import static com.vesperin.text.spelling.WordCorrector.containsWord;
-import static com.vesperin.text.spelling.WordCorrector.suggestCorrection;
+import static com.vesperin.text.spelling.SpellCorrector.containsWord;
+import static com.vesperin.text.spelling.SpellCorrector.suggestCorrection;
 import static com.vesperin.text.utils.Strings.similarity;
 import static java.util.stream.Collectors.toList;
 
@@ -426,7 +425,7 @@ public interface Selection extends Executable {
       String lxS  = xS.toLowerCase(Locale.ENGLISH);
       final boolean inTheClub = isDefined(lxS);
 
-      xS = inTheClub ? xS : Strings.firstCharUpperCase(WordCorrector.suggestCorrection(lxS));
+      xS = inTheClub ? xS : Strings.firstCharUpperCase(SpellCorrector.suggestCorrection(lxS));
 
       final StringBuilder sb = new StringBuilder();
       for(int i = 0; i < xa.length - 1; i++){
@@ -576,7 +575,7 @@ public interface Selection extends Executable {
 
           String currentLabel = eachLabel.toLowerCase(Locale.ENGLISH);
 
-          if(Corrector.onlyConsonantsOrVowels(currentLabel) || !containsWord(currentLabel)){
+          if(Strings.onlyConsonantsOrVowels(currentLabel) || !containsWord(currentLabel)){
             final String newLabel = suggestCorrection(currentLabel).toLowerCase();
 
             if(similarity(currentLabel, newLabel) > 0.3f){
@@ -609,7 +608,7 @@ public interface Selection extends Executable {
     static boolean isValid(String identifier){
       final String  pattern         = Pattern.quote("_");
       final boolean underscored     = identifier.split(pattern).length == 1;
-      final boolean onlyConsonants  = Corrector.onlyConsonantsOrVowels(identifier);
+      final boolean onlyConsonants  = Strings.onlyConsonantsOrVowels(identifier);
       final boolean tooSmall        = identifier.length() < 4;
 
       return !((underscored && onlyConsonants) || tooSmall);
@@ -700,7 +699,7 @@ public interface Selection extends Executable {
       methodName        = methodName.toLowerCase(Locale.ENGLISH);
       if(!whiteSet.contains(methodName) && !whiteSet.isEmpty()) return false;
 
-      final String identifier = WordCorrector.trimSideNumbers(simpleName.getIdentifier(), false);
+      final String identifier = SpellCorrector.trimSideNumbers(simpleName.getIdentifier(), false);
 
       if(visited.contains(identifier)) return false;
       if(!isValid(identifier)){
@@ -732,7 +731,7 @@ public interface Selection extends Executable {
       final MethodDeclaration method = optionalMethod.get();
 
       String methodName = method.getName().getIdentifier();
-      final String identifier = WordCorrector.trimSideNumbers(methodName, false);
+      final String identifier = SpellCorrector.trimSideNumbers(methodName, false);
       methodName        = methodName.toLowerCase(Locale.ENGLISH);
 
       if(!whiteSet.contains(methodName) && !whiteSet.isEmpty()) return false;
@@ -759,7 +758,7 @@ public interface Selection extends Executable {
 
           String currentLabel = eachLabel.toLowerCase(Locale.ENGLISH);
 
-          if(Corrector.onlyConsonantsOrVowels(currentLabel) || !containsWord(currentLabel)){
+          if(Strings.onlyConsonantsOrVowels(currentLabel) || !containsWord(currentLabel)){
             final String newLabel = suggestCorrection(currentLabel).toLowerCase();
 
             if(similarity(currentLabel, newLabel) > 0.3f){
