@@ -9,10 +9,10 @@ import com.vesperin.base.locations.Locations;
 import com.vesperin.base.locators.ProgramUnitLocation;
 import com.vesperin.base.locators.UnitLocation;
 import com.vesperin.text.nouns.Noun;
-import com.vesperin.text.tokenizers.ASTNodeWordsTokenizer;
-import com.vesperin.text.tokenizers.WordsTokenizer;
 import com.vesperin.text.spelling.SpellCorrector;
 import com.vesperin.text.spelling.StopWords;
+import com.vesperin.text.tokenizers.ASTNodeWordsTokenizer;
+import com.vesperin.text.tokenizers.WordsTokenizer;
 import com.vesperin.text.utils.Jamas;
 import com.vesperin.text.utils.Strings;
 import org.eclipse.jdt.core.dom.ASTNode;
@@ -31,19 +31,19 @@ import static java.util.stream.Collectors.toList;
 
 /**
  * Selection mixin
- *
+ * @param <T>
  * @author Huascar Sanchez
  */
-public interface Selection extends Executable {
-
+public interface Selection <T> extends Executable {
   /**
    * Selects the most relevant words in a corpus of source files.
    *
    * @param fromCode corpus
    * @param tokenizer strategy for collecting words in the given code
+   * @param <T> type elements contained in the corpus.
    * @return a new list of relevant words
    */
-  static List<Word> selects(Set<Source> fromCode, WordsTokenizer tokenizer){
+  static <T> List<Word> selects(Corpus<T> fromCode, WordsTokenizer tokenizer){
     return selects(Integer.MAX_VALUE, fromCode, tokenizer);
   }
 
@@ -53,10 +53,11 @@ public interface Selection extends Executable {
    *
    * @param k limit the list to this number (capped to 10)
    * @param fromCode corpus
+   * @param <T> type elements contained in the corpus.
    * @return a new list of relevant words
    */
-  static List<Word> selects(int k, Set<Source> fromCode, WordsTokenizer tokenizer){
-    return new SelectionImpl().weightedWords(k, fromCode, tokenizer);
+  static <T> List<Word> selects(int k, Corpus<T> fromCode, WordsTokenizer tokenizer){
+    return new SelectionImpl<T>().weightedWords(k, fromCode, tokenizer);
   }
 
 
@@ -74,16 +75,44 @@ public interface Selection extends Executable {
    * Catches a list of words from a given source code.
    *
    * @param code Java source file containing source code.
-   * @param scanner strategy for collecting words in the given code
+   * @param tokenizer strategy for collecting words in the given code
    * @return a new list of words. Duplicate words are allowed.
    */
-  default List<Word> from(Source code, WordsTokenizer scanner) {
-    final Context       context = newContext(code);
-    final UnitLocation  scope   = buildScope(context);
+  default List<Word> from(T code, WordsTokenizer tokenizer) {
+    final boolean isSource = code instanceof Source;
 
-    if(scope == null) return Collections.emptyList();
+    if(isSource && !tokenizer.isLightweightTokenizer()){
+      final Source        src     = (Source) code;
+      final Context       context = newContext(src);
+      final UnitLocation  scope   = buildScope(context);
 
-    return from(scope, scanner);
+      if(scope == null) return Collections.emptyList();
+      return from(scope, tokenizer);
+    } else {
+      assert code instanceof String;
+
+      final String text = (String) code;
+      return from(text, tokenizer);
+    }
+
+  }
+
+  /**
+   * Catches a list of words from a given text.
+   *
+   * @param text Java source file containing source text.
+   * @param tokenizer strategy for collecting words in the given text
+   * @return a new list of words. Duplicate words are allowed.
+   */
+  default List<Word> from(String text, WordsTokenizer tokenizer){
+
+    if(text == null || text.isEmpty() || "".equals(text)) return Collections.emptyList();
+
+    final int idx = text.lastIndexOf(".");
+    final String identifier = idx > 0 ? text.substring(idx, text.length()) : text;
+    tokenizer.tokenize(identifier, text);
+
+    return tokenizer.wordsList();
   }
 
   /**
@@ -98,14 +127,11 @@ public interface Selection extends Executable {
 
     if(!optional.isPresent()) return Collections.emptyList();
 
-    if(optional.isPresent() && !tokenizer.isLightweightTokenizer()) {
-      final UnitLocation  nonNull = optional.get();
-      final ASTNode       node    = nonNull.getUnitNode();
+    final UnitLocation  nonNull = optional.get();
+    final ASTNode       node    = nonNull.getUnitNode();
 
-      final ASTNodeWordsTokenizer heavyWeightTokenizer = (ASTNodeWordsTokenizer) tokenizer;
-      node.accept(heavyWeightTokenizer);
-    }
-
+    final ASTNodeWordsTokenizer heavyWeightTokenizer = (ASTNodeWordsTokenizer) tokenizer;
+    node.accept(heavyWeightTokenizer);
 
     final List<Word> words = new ArrayList<>(tokenizer.wordsList());
     tokenizer.clear();
@@ -119,7 +145,7 @@ public interface Selection extends Executable {
    * @param tokenizer strategy for collecting words in the given code.
    * @return the top k list of words.
    */
-  default List<Word> flattenWordList(Set<Source> code, WordsTokenizer tokenizer){
+  default List<Word> flattenWordList(Corpus<T> code, WordsTokenizer tokenizer){
     return frequentWords(Integer.MAX_VALUE, code, tokenizer);
   }
 
@@ -131,7 +157,7 @@ public interface Selection extends Executable {
    * @param tokenizer strategy for collecting words in the given code.
    * @return the top k list of words.
    */
-  default List<Word> frequentWords(int k, Set<Source> code, WordsTokenizer tokenizer){
+  default List<Word> frequentWords(int k, Corpus<T> code, WordsTokenizer tokenizer){
     final List<Word> firstPass  = from(code, tokenizer);
     final List<Word> secondPass = cleansing(tokenizer.stopWords(), firstPass);
 
@@ -146,7 +172,7 @@ public interface Selection extends Executable {
    * @param code the corpus.
    * @return a list of most representative words.
    */
-  default List<Word> weightedWords(int k, Set<Source> code, WordsTokenizer tokenizer){
+  default List<Word> weightedWords(int k, Corpus<T> code, WordsTokenizer tokenizer){
     final List<Word> words = from(flattenWordList(code, tokenizer), new WordByCompositeWeight());
     if(words.isEmpty()) return words;
     final int topK = Math.min(Math.max(0, k), 150);
@@ -187,11 +213,11 @@ public interface Selection extends Executable {
    * @param tokenizer strategy for collecting words in the given code.
    * @return a new list of words. Duplicate words are allowed.
    */
-  default List<Word> from(Set<Source> code, final WordsTokenizer tokenizer) {
+  default List<Word> from(Corpus<T> code, final WordsTokenizer tokenizer) {
     final List<Word> result = new CopyOnWriteArrayList<>();
 
     final Collection<Callable<List<Word>>> tasks = new ArrayList<>();
-    code.forEach(c -> tasks.add(() -> from(c, tokenizer)));
+    code.dataSet().forEach(c -> tasks.add(() -> from(c, tokenizer)));
 
     final ExecutorService service = scaleExecutor(code.size());
 
@@ -677,5 +703,5 @@ public interface Selection extends Executable {
     }
   }
 
-  class SelectionImpl implements Selection {}
+  class SelectionImpl <T> implements Selection <T> {}
 }

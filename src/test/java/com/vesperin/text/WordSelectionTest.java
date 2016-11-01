@@ -20,7 +20,7 @@ import static org.junit.Assert.assertThat;
 public class WordSelectionTest {
 
   @Test public void testBasicExtraction() throws Exception {
-    final WordDistilling extractor = new WordDistilling();
+    final WordDistilling<Source> extractor = new WordDistilling<>();
     final Set<Source> code = Sets.newHashSet(
       Codebase.quickSort("QuickSort1"),
       Codebase.quickSort("QuickSort2"),
@@ -29,10 +29,13 @@ public class WordSelectionTest {
       Codebase.quickSort("QuickSort5")
     );
 
-    final List<Word> words = extractor.from(code, Tokenizers.tokenizeMethodDeclarationBody(Collections.emptySet(), StopWords.all()));
+    final Corpus<Source> corpus = Corpus.ofSources();
+    corpus.addAll(code);
+
+    final List<Word> words = extractor.from(corpus, Tokenizers.tokenizeMethodDeclarationBody(Collections.emptySet(), StopWords.all()));
     assertThat(words.isEmpty(), is(false));
 
-    final List<Word> relevant = extractor.frequentWords(words.size(), code, Tokenizers.tokenizeMethodDeclarationBody(Collections.emptySet(), StopWords.all()));
+    final List<Word> relevant = extractor.frequentWords(words.size(), corpus, Tokenizers.tokenizeMethodDeclarationBody(Collections.emptySet(), StopWords.all()));
     relevant.forEach(System.out::println);
 
   }
@@ -46,8 +49,11 @@ public class WordSelectionTest {
       Codebase.quickSort("QuickSort5")
     );
 
+    final Corpus<Source> corpus = Corpus.ofSources();
+    corpus.addAll(code);
+
     final List<Word> words = Selection.selects(
-      code,
+      corpus,
       Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(),
         StopWords.all())
     );
@@ -57,7 +63,7 @@ public class WordSelectionTest {
   }
 
   @Test public void testTop2Words() throws Exception {
-    final WordDistilling extractor = new WordDistilling();
+    final WordDistilling <Source> extractor = new WordDistilling<>();
     final Set<Source> code = Sets.newHashSet(
       Codebase.quickSort("QuickSort1"),
       Codebase.quickSort("QuickSort2"),
@@ -67,9 +73,12 @@ public class WordSelectionTest {
       Codebase.randomCode("Query3")
     );
 
-    final List<Word> words = extractor.frequentWords(2, code, Tokenizers.tokenizeMethodDeclarationBody(Collections.emptySet(), StopWords.all()));
-    final List<Word> words2 = extractor.frequentWords(2, code, Tokenizers.tokenizeMethodDeclarationName(Collections.emptySet(), StopWords.all()));
-    final List<Word> words3 = extractor.frequentWords(2, code, Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(), StopWords.all()));
+    final Corpus<Source> corpus = Corpus.ofSources();
+    corpus.addAll(code);
+
+    final List<Word> words  = extractor.frequentWords(2, corpus, Tokenizers.tokenizeMethodDeclarationBody(Collections.emptySet(), StopWords.all()));
+    final List<Word> words2 = extractor.frequentWords(2, corpus, Tokenizers.tokenizeMethodDeclarationName(Collections.emptySet(), StopWords.all()));
+    final List<Word> words3 = extractor.frequentWords(2, corpus, Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(), StopWords.all()));
     assertThat(words.isEmpty(), is(false));
     assertThat(words2.isEmpty(), is(false));
 
@@ -79,7 +88,7 @@ public class WordSelectionTest {
   }
 
   @Test public void testLatentWords() throws Exception {
-    final WordDistilling extractor = new WordDistilling();
+    final WordDistilling <Source> extractor = new WordDistilling<>();
     final Set<Source> code = Sets.newHashSet(
       Codebase.quickSort("QuickSort1"),
       Codebase.quickSort("QuickSort2"),
@@ -89,8 +98,11 @@ public class WordSelectionTest {
       Codebase.randomCode("Query3")
     );
 
-    final List<Word> words = extractor.weightedWords(5, code, Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(), StopWords.of(StopWords.JAVA, StopWords.ENGLISH)));
-    final List<Word> words2 = extractor.flattenWordList(code, Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(), StopWords.of(StopWords.JAVA, StopWords.ENGLISH)));
+    final Corpus<Source> corpus = Corpus.ofSources();
+    corpus.addAll(code);
+
+    final List<Word> words = extractor.weightedWords(5, corpus, Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(), StopWords.of(StopWords.JAVA, StopWords.ENGLISH)));
+    final List<Word> words2 = extractor.flattenWordList(corpus, Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(), StopWords.of(StopWords.JAVA, StopWords.ENGLISH)));
     System.out.println(words);
     System.out.println(words2);
     assertThat(words.isEmpty(), is(false));

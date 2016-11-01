@@ -4,8 +4,8 @@ import com.google.common.collect.Sets;
 import com.vesperin.base.Source;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
-import com.vesperin.text.tokenizers.Tokenizers;
 import com.vesperin.text.spelling.StopWords;
+import com.vesperin.text.tokenizers.Tokenizers;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -30,7 +30,7 @@ public class GroupingTest {
   private static List<Document> documents;
 
   @BeforeClass public static void setup(){
-    final Selection extractor = new WordDistilling();
+    final Selection<Source> extractor = new WordDistilling<>();
     final Set<Source> code = Sets.newHashSet(
       Codebase.quickSort("QuickSort1"),
       Codebase.quickSort("QuickSort2"),
@@ -40,9 +40,12 @@ public class GroupingTest {
       Codebase.randomCode("Query3")
     );
 
-    words  = extractor.weightedWords(100, code, Tokenizers.tokenizeMethodDeclarationBody(Collections.emptySet(), StopWords.all()));
-    words1 = extractor.weightedWords(100, code, Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(), StopWords.of(StopWords.ENGLISH, StopWords.JAVA)));
-    words2 = extractor.weightedWords(100, code, Tokenizers.tokenizeMethodDeclarationName(Collections.emptySet(), StopWords.all()));
+    final Corpus<Source> corpus = Corpus.ofSources();
+    corpus.addAll(code);
+
+    words  = extractor.weightedWords(100, corpus, Tokenizers.tokenizeMethodDeclarationBody(Collections.emptySet(), StopWords.all()));
+    words1 = extractor.weightedWords(100, corpus, Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(), StopWords.of(StopWords.ENGLISH, StopWords.JAVA)));
+    words2 = extractor.weightedWords(100, corpus, Tokenizers.tokenizeMethodDeclarationName(Collections.emptySet(), StopWords.all()));
 
     documents = Docs.documents();
   }

@@ -63,34 +63,11 @@ public abstract class ASTNodeWordsTokenizer extends SkeletalVisitor implements W
    */
   abstract void tokenize(ASTNode node);
 
-  /**
-   * Tokenize some text extracted from either a given container or the body of
-   * a given container.
-   *
-   * @param text raw text
-   * @param container either a class name or a method name.
-   */
-  void tokenize(String text, String container){
-    if (!skipThrowablesAlike(text)) {
-      // make sure we have a valid split
-      String[] split = Strings.wordSplit(text);
-
-      // process all split tokens
-      process(split, container);
-    }
-  }
-
   @Override public void clear() {
     synchronized (this) {
       this.visited.clear();
       this.items.clear();
     }
-  }
-
-  private static boolean skipThrowablesAlike(String identifier) {
-    return (identifier.endsWith("Exception")
-      || identifier.equals("Throwable")
-      || identifier.equals("Error"));
   }
 
   boolean skipNonWhiteListed(String text){

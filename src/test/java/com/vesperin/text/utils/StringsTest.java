@@ -27,7 +27,9 @@ public class StringsTest {
     stopWords.add("foo");
     final List<String> sorted   = Strings.typicalityRank(unsorted.size(), unsorted);
 
-    assertEquals("[Join, Joint, Jo, Sphere, Sweep]", sorted.toString());
+    assertEquals("Join", sorted.get(0));
+    assertEquals("Joint", sorted.get(1));
+    assertEquals("Jo", sorted.get(2));
   }
 
   @Test public void testGroupsPruning() throws Exception {

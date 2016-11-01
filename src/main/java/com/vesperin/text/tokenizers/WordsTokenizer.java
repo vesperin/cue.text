@@ -40,6 +40,29 @@ public interface WordsTokenizer extends Iterable<Word> {
   boolean isLightweightTokenizer();
 
   /**
+   * Tokenize some text extracted from either a given container or the body of
+   * a given container.
+   *
+   * @param text raw text
+   * @param container either a class name or a method name.
+   */
+  default void tokenize(String text, String container){
+    if (!skipThrowablesAlike(text)) {
+      // make sure we have a valid split
+      String[] split = Strings.wordSplit(text);
+
+      // process all split tokens
+      process(split, container);
+    }
+  }
+
+  static boolean skipThrowablesAlike(String identifier) {
+    return (identifier.endsWith("Exception")
+      || identifier.equals("Throwable")
+      || identifier.equals("Error"));
+  }
+
+  /**
    * Process an array of raw tokens before adding them to a list of words.
    *
    * @param tokens raw tokens

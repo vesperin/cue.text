@@ -27,9 +27,12 @@ public class UsecaseTest {
   @BeforeClass public static void setup() throws Exception {
     stopWords = StopWords.all();
     final Set<Source> sources = allSourceFiles();
+    final Corpus<Source> corpus = Corpus.ofSources();
+    corpus.addAll(sources);
+
     words   = Selection.selects(
       50,
-      sources,
+      corpus,
       Tokenizers.tokenizeTypeDeclarationName(stopWords)
     );
   }
