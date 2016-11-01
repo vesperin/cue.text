@@ -5,7 +5,7 @@ import Jama.SingularValueDecomposition;
 import com.google.common.collect.Lists;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
-import com.vesperin.text.selection.WordsTokenizer;
+import com.vesperin.text.tokenizers.WordsTokenizer;
 import com.vesperin.text.utils.Jamas;
 
 import java.util.HashMap;
