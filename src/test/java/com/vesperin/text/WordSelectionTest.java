@@ -3,6 +3,7 @@ package com.vesperin.text;
 import com.google.common.collect.Sets;
 import com.vesperin.base.Source;
 import com.vesperin.text.Selection.Word;
+import com.vesperin.text.selection.Tokenizers;
 import com.vesperin.text.spelling.StopWords;
 import org.junit.Test;
 
@@ -28,10 +29,10 @@ public class WordSelectionTest {
       Codebase.quickSort("QuickSort5")
     );
 
-    final List<Word> words = extractor.from(code, Selection.inspectMethodBody(Collections.emptySet(), StopWords.all()));
+    final List<Word> words = extractor.from(code, Tokenizers.tokenizeMethodDeclarationBody(Collections.emptySet(), StopWords.all()));
     assertThat(words.isEmpty(), is(false));
 
-    final List<Word> relevant = extractor.frequentWords(words.size(), code, Selection.inspectMethodBody(Collections.emptySet(), StopWords.all()));
+    final List<Word> relevant = extractor.frequentWords(words.size(), code, Tokenizers.tokenizeMethodDeclarationBody(Collections.emptySet(), StopWords.all()));
     relevant.forEach(System.out::println);
 
   }
@@ -47,7 +48,7 @@ public class WordSelectionTest {
 
     final List<Word> words = Selection.selects(
       code,
-      Selection.inspectClassName(Collections.emptySet(),
+      Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(),
         StopWords.all())
     );
 
@@ -66,9 +67,9 @@ public class WordSelectionTest {
       Codebase.randomCode("Query3")
     );
 
-    final List<Word> words = extractor.frequentWords(2, code, Selection.inspectMethodBody(Collections.emptySet(), StopWords.all()));
-    final List<Word> words2 = extractor.frequentWords(2, code, Selection.inspectMethodName(Collections.emptySet(), StopWords.all()));
-    final List<Word> words3 = extractor.frequentWords(2, code, Selection.inspectClassName(Collections.emptySet(), StopWords.all()));
+    final List<Word> words = extractor.frequentWords(2, code, Tokenizers.tokenizeMethodDeclarationBody(Collections.emptySet(), StopWords.all()));
+    final List<Word> words2 = extractor.frequentWords(2, code, Tokenizers.tokenizeMethodDeclarationName(Collections.emptySet(), StopWords.all()));
+    final List<Word> words3 = extractor.frequentWords(2, code, Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(), StopWords.all()));
     assertThat(words.isEmpty(), is(false));
     assertThat(words2.isEmpty(), is(false));
 
@@ -88,8 +89,8 @@ public class WordSelectionTest {
       Codebase.randomCode("Query3")
     );
 
-    final List<Word> words = extractor.weightedWords(5, code, Selection.inspectClassName(Collections.emptySet(), StopWords.of(StopWords.JAVA, StopWords.ENGLISH)));
-    final List<Word> words2 = extractor.flattenWordList(code, Selection.inspectClassName(Collections.emptySet(), StopWords.of(StopWords.JAVA, StopWords.ENGLISH)));
+    final List<Word> words = extractor.weightedWords(5, code, Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(), StopWords.of(StopWords.JAVA, StopWords.ENGLISH)));
+    final List<Word> words2 = extractor.flattenWordList(code, Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(), StopWords.of(StopWords.JAVA, StopWords.ENGLISH)));
     System.out.println(words);
     System.out.println(words2);
     assertThat(words.isEmpty(), is(false));

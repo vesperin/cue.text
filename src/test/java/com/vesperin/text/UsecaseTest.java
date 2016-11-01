@@ -3,6 +3,7 @@ package com.vesperin.text;
 import com.vesperin.base.Source;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
+import com.vesperin.text.selection.Tokenizers;
 import com.vesperin.text.spelling.StopWords;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -29,7 +30,7 @@ public class UsecaseTest {
     words   = Selection.selects(
       50,
       sources,
-      Selection.inspectClassName(stopWords)
+      Tokenizers.tokenizeTypeDeclarationName(stopWords)
     );
   }
 

@@ -12,11 +12,12 @@ import java.util.Locale;
 import java.util.Objects;
 
 import static com.vesperin.text.utils.Strings.isNumber;
+import static com.vesperin.text.utils.Strings.onlyConsonantsOrVowels;
 
 /**
  * @author Huascar Sanchez
  */
-public enum Dictionary implements BagOfWords {
+public enum Dictionary implements Words <String> {
   ENGLISH();
 
   private final List<String> words;
@@ -83,13 +84,11 @@ public enum Dictionary implements BagOfWords {
 
     final List<String> lines = Files.readAllLines(dictionaryFile);
 
-
     for(String line : lines){
 
       if(line.length() <= 2)            continue;
       if(isNumber(line))                continue;
-      if(Strings.onlyConsonantsOrVowels(line))  continue;
-
+      if(onlyConsonantsOrVowels(line))  continue;
 
       dict.add(line); // each line is a word
     }

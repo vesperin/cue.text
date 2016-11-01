@@ -4,6 +4,7 @@ import com.google.common.collect.Sets;
 import com.vesperin.base.Source;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
+import com.vesperin.text.selection.Tokenizers;
 import com.vesperin.text.spelling.StopWords;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -39,9 +40,9 @@ public class GroupingTest {
       Codebase.randomCode("Query3")
     );
 
-    words  = extractor.weightedWords(100, code, Selection.inspectMethodBody(Collections.emptySet(), StopWords.all()));
-    words1 = extractor.weightedWords(100, code, Selection.inspectClassName(Collections.emptySet(), StopWords.of(StopWords.ENGLISH, StopWords.JAVA)));
-    words2 = extractor.weightedWords(100, code, Selection.inspectMethodName(Collections.emptySet(), StopWords.all()));
+    words  = extractor.weightedWords(100, code, Tokenizers.tokenizeMethodDeclarationBody(Collections.emptySet(), StopWords.all()));
+    words1 = extractor.weightedWords(100, code, Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(), StopWords.of(StopWords.ENGLISH, StopWords.JAVA)));
+    words2 = extractor.weightedWords(100, code, Tokenizers.tokenizeMethodDeclarationName(Collections.emptySet(), StopWords.all()));
 
     documents = Docs.documents();
   }

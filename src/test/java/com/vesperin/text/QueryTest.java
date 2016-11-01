@@ -9,6 +9,7 @@ import com.vesperin.text.Grouping.Groups;
 import com.vesperin.text.Query.Result;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
+import com.vesperin.text.selection.Tokenizers;
 import com.vesperin.text.spelling.StopWords;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -44,7 +45,7 @@ public class QueryTest {
 
   @Test public void testSearching() throws Exception {
 
-    final List<Word>  words  = Selection.selects(100, code, Selection.inspectMethodBody(Collections.emptySet(), StopWords.all()));
+    final List<Word>  words  = Selection.selects(100, code, Tokenizers.tokenizeMethodDeclarationBody(Collections.emptySet(), StopWords.all()));
     final Groups      groups = Grouping.formWordGroups(words);
     final Index       index  = groups.index();
 
@@ -65,7 +66,7 @@ public class QueryTest {
 
   @Test public void testTypeSearching() throws Exception {
 
-    final List<Word>  words   = Selection.selects(100, code, Selection.inspectClassName(StopWords.of(StopWords.JAVA)));
+    final List<Word>  words   = Selection.selects(100, code, Tokenizers.tokenizeTypeDeclarationName(StopWords.of(StopWords.JAVA)));
     final Groups      groups  = Grouping.formDocGroups(words);
 
     final Map<Group, Index> mapping = Grouping.groupIndexMapping(words);
@@ -95,7 +96,7 @@ public class QueryTest {
 
   @Test public void testReGrouping() throws Exception {
 
-    final List<Word>  words   = Selection.selects(100, code, Selection.inspectClassName(StopWords.of(StopWords.JAVA)));
+    final List<Word>  words   = Selection.selects(100, code, Tokenizers.tokenizeTypeDeclarationName(StopWords.of(StopWords.JAVA)));
     final Groups      groups  = Grouping.formDocGroups(words);
 
     final Map<Grouping.Group, Index> mapping = Grouping.groupIndexMapping(words);

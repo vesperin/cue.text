@@ -20,7 +20,7 @@ import java.util.Set;
 /**
  * @author Huascar Sanchez
  */
-public enum StopWords implements BagOfWords {
+public enum StopWords implements Words <String> {
   ENGLISH(), JAVA(), GENERAL(), CUSTOM();
 
 
@@ -39,7 +39,7 @@ public enum StopWords implements BagOfWords {
   /**
    * Construct the StopWords enum
    *
-   * @param stripApostrophes s
+   * @param stripApostrophes strip apostrophes
    */
   StopWords(boolean stripApostrophes) {
     this.stripApostrophes = stripApostrophes;
