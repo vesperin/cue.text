@@ -1,4 +1,4 @@
-package com.vesperin.text.selection;
+package com.vesperin.text.tokenizers;
 
 import com.vesperin.text.spelling.StopWords;
 import com.vesperin.text.utils.Strings;
@@ -6,7 +6,6 @@ import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.SimpleName;
 
-import java.util.Locale;
 import java.util.Set;
 
 /**

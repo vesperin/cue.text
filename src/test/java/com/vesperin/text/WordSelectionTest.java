@@ -3,7 +3,7 @@ package com.vesperin.text;
 import com.google.common.collect.Sets;
 import com.vesperin.base.Source;
 import com.vesperin.text.Selection.Word;
-import com.vesperin.text.selection.Tokenizers;
+import com.vesperin.text.tokenizers.Tokenizers;
 import com.vesperin.text.spelling.StopWords;
 import org.junit.Test;
 

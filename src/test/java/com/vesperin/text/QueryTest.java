@@ -9,7 +9,7 @@ import com.vesperin.text.Grouping.Groups;
 import com.vesperin.text.Query.Result;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
-import com.vesperin.text.selection.Tokenizers;
+import com.vesperin.text.tokenizers.Tokenizers;
 import com.vesperin.text.spelling.StopWords;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;

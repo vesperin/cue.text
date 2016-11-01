@@ -1,4 +1,4 @@
-package com.vesperin.text.selection;
+package com.vesperin.text.tokenizers;
 
 import com.vesperin.text.Selection;
 import com.vesperin.text.Selection.Word;
