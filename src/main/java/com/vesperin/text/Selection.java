@@ -43,8 +43,8 @@ public interface Selection <T> extends Executable {
    * @param <T> type elements contained in the corpus.
    * @return a new list of relevant words
    */
-  static <T> List<Word> selectFrequentWords(Corpus<T> fromCorpus, WordsTokenizer tokenizer){
-    return selectFrequentWords(Integer.MAX_VALUE, fromCorpus, tokenizer);
+  static <T> List<Word> selectAllFrequentWords(Corpus<T> fromCorpus, WordsTokenizer tokenizer){
+    return topKFrequentWords(Integer.MAX_VALUE, fromCorpus, tokenizer);
   }
 
 
@@ -56,7 +56,7 @@ public interface Selection <T> extends Executable {
    * @param <T> type elements contained in the corpus.
    * @return a new list of relevant words
    */
-  static <T> List<Word> selectFrequentWords(int k, Corpus<T> fromCorpus, WordsTokenizer tokenizer){
+  static <T> List<Word> topKFrequentWords(int k, Corpus<T> fromCorpus, WordsTokenizer tokenizer){
     return new SelectionImpl<T>().topKWords(k, fromCorpus, tokenizer);
   }
 

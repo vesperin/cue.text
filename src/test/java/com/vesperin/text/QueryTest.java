@@ -48,7 +48,7 @@ public class QueryTest {
     final Corpus<Source> corpus = Corpus.ofSources();
     corpus.addAll(code);
 
-    final List<Word>  words  = Selection.selectFrequentWords(100, corpus, Tokenizers.tokenizeMethodDeclarationBody(Collections.emptySet(), StopWords.all()));
+    final List<Word>  words  = Selection.topKFrequentWords(100, corpus, Tokenizers.tokenizeMethodDeclarationBody(Collections.emptySet(), StopWords.all()));
     final Groups      groups = Grouping.formWordGroups(words);
     final Index       index  = groups.index();
 
@@ -72,7 +72,7 @@ public class QueryTest {
     final Corpus<Source> corpus = Corpus.ofSources();
     corpus.addAll(code);
 
-    final List<Word>  words   = Selection.selectFrequentWords(100, corpus, Tokenizers.tokenizeTypeDeclarationName(StopWords.of(StopWords.JAVA)));
+    final List<Word>  words   = Selection.topKFrequentWords(100, corpus, Tokenizers.tokenizeTypeDeclarationName(StopWords.of(StopWords.JAVA)));
     final Groups      groups  = Grouping.formDocGroups(words);
 
     final Map<Group, Index> mapping = Grouping.groupIndexMapping(words);
@@ -105,7 +105,7 @@ public class QueryTest {
     final Corpus<Source> corpus = Corpus.ofSources();
     corpus.addAll(code);
 
-    final List<Word>  words   = Selection.selectFrequentWords(100, corpus, Tokenizers.tokenizeTypeDeclarationName(StopWords.of(StopWords.JAVA)));
+    final List<Word>  words   = Selection.topKFrequentWords(100, corpus, Tokenizers.tokenizeTypeDeclarationName(StopWords.of(StopWords.JAVA)));
     final Groups      groups  = Grouping.formDocGroups(words);
 
     final Map<Grouping.Group, Index> mapping = Grouping.groupIndexMapping(words);
