@@ -45,7 +45,7 @@ public interface Selection <T> extends Executable {
    * @return a new list of typical words.
    */
   static <T> List<Word> typicalWords(Corpus<T> fromCorpus, WordsTokenizer tokenizer){
-    final List<Word> words = selectAllFrequentWords(fromCorpus, tokenizer);
+    final List<Word> words = frequentWords(fromCorpus, tokenizer);
 
     final Map<String, Word> mapping = new HashMap<>();
 
@@ -68,7 +68,7 @@ public interface Selection <T> extends Executable {
    * @param <T> type elements contained in the corpus.
    * @return a new list of frequent words
    */
-  static <T> List<Word> selectAllFrequentWords(Corpus<T> fromCorpus, WordsTokenizer tokenizer){
+  static <T> List<Word> frequentWords(Corpus<T> fromCorpus, WordsTokenizer tokenizer){
     return topKFrequentWords(Integer.MAX_VALUE, fromCorpus, tokenizer);
   }
 
@@ -213,7 +213,7 @@ public interface Selection <T> extends Executable {
     return slice(topK, words);
   }
 
-  default List<Word> slice(int k, List<Word> words){
+  static List<Word> slice(int k, List<Word> words){
     return words.stream().limit(k).collect(Collectors.toList());
   }
 
