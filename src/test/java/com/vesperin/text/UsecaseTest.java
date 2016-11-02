@@ -3,8 +3,8 @@ package com.vesperin.text;
 import com.vesperin.base.Source;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
-import com.vesperin.text.tokenizers.Tokenizers;
 import com.vesperin.text.spelling.StopWords;
+import com.vesperin.text.tokenizers.Tokenizers;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -21,18 +21,24 @@ import static org.junit.Assert.assertNotNull;
  */
 public class UsecaseTest {
 
-  private static List<Word> words;
+  private static List<Word>     words;
   private static Set<StopWords> stopWords;
+  private static List<Word>     targets;
 
   @BeforeClass public static void setup() throws Exception {
     stopWords = StopWords.all();
     final Set<Source> sources = allSourceFiles();
-    final Corpus<Source> corpus = Corpus.ofSources();
+
+    Corpus<Source> corpus = Corpus.ofSources();
     corpus.addAll(sources);
 
     words   = Selection.topKFrequentWords(
       50,
       corpus,
+      Tokenizers.tokenizeTypeDeclarationName(stopWords)
+    );
+
+    targets = Selection.typicalWords(corpus,
       Tokenizers.tokenizeTypeDeclarationName(stopWords)
     );
   }
@@ -52,14 +58,20 @@ public class UsecaseTest {
 
     for(Grouping.Group each : groups){
       final List<Document> documents = Grouping.Group.items(each, Document.class);
-      final Query.Result result  = Query.types(documents, index);
+      final Query.Result result  = Query.words(documents, index);
 
-      final Query.Result result1 = Query.labels(documents, stopWords);
+      final List<String> result1 = Recommend.labels(documents);
 
       System.out.println(Document.names(documents));
       System.out.println(">>>" + result + " <=> " + result1);
       System.out.println();
     }
+  }
+
+  @Test public void systemTest2() throws Exception {
+    final Query.Result result = Query.documents(targets, words);
+
+    assertNotNull(result);
   }
 
 

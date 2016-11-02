@@ -58,7 +58,7 @@ public class QueryTest {
 
     final List<Word>  keywords = Group.items(group, Word.class);
     for(Word each : keywords){
-      final Result result = Query.methods(Collections.singletonList(each), index);
+      final Result result = Query.documents(Collections.singletonList(each), index);
       assertNotNull(result);
 
       System.out.println(each + ": " + result);
@@ -95,7 +95,7 @@ public class QueryTest {
     final List<Document>  keywords = Group.items(group, Document.class);
 
     for(Document each : keywords){
-      final Result result = Query.types(Collections.singletonList(each), index);
+      final Result result = Query.words(Collections.singletonList(each), index);
       assertNotNull(result);
     }
   }
@@ -130,7 +130,7 @@ public class QueryTest {
 
     for(Group eachGroup : g2){
       final List<Document> docs = Group.items(eachGroup, Document.class);
-      final Result result = Query.types(docs, index);
+      final Result result = Query.words(docs, index);
 
       assertNotNull(result);
       assertTrue(Result.items(result, Word.class).size() < 3);
@@ -150,10 +150,10 @@ public class QueryTest {
     System.out.println("forming groups of groups:" + start);
     for(Grouping.Group each : gp){
       final List<Document> ds = Group.items(each, Document.class);
-      final Result result = Query.labels(ds, StopWords.all());
+      final List<String> result = Recommend.labels(ds);
 
       final List<String> names     = Document.names(ds);
-      System.out.println(names + " : [" + Query.label(result)  + "]");
+      System.out.println(names + " : [" + Recommend.coalesce(result)  + "]");
     }
   }
 
