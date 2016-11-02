@@ -4,12 +4,13 @@ import com.vesperin.base.Source;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 /**
  * @author Huascar Sanchez
  */
-public interface Corpus <T> {
+public interface Corpus <T> extends Iterable <T> {
 
   /**
    * Factory method that produces a corpus of source file elements.
@@ -80,6 +81,10 @@ public interface Corpus <T> {
    */
   default int size(){
     return dataSet().size();
+  }
+
+  @Override default Iterator<T> iterator() {
+    return dataSet().iterator();
   }
 
   /**

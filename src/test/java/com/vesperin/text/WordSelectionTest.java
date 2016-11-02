@@ -36,7 +36,7 @@ public class WordSelectionTest {
 
 
     final Selection<String> selection = new WordDistilling<>();
-    final List<Word> words = selection.weightedWords(3, corpus, Tokenizers.tokenizeString());
+    final List<Word> words = selection.topKWords(3, corpus, Tokenizers.tokenizeString());
     assertThat(words.isEmpty(), is(false));
   }
 
@@ -123,8 +123,8 @@ public class WordSelectionTest {
     final Corpus<Source> corpus = Corpus.ofSources();
     corpus.addAll(code);
 
-    final List<Word> words = extractor.weightedWords(5, corpus, Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(), StopWords.of(StopWords.JAVA, StopWords.ENGLISH)));
-    final List<Word> words2 = extractor.flattenWordList(corpus, Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(), StopWords.of(StopWords.JAVA, StopWords.ENGLISH)));
+    final List<Word> words = extractor.topKWords(5, corpus, Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(), StopWords.of(StopWords.JAVA, StopWords.ENGLISH)));
+    final List<Word> words2 = extractor.deduplicateWordList(corpus, Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(), StopWords.of(StopWords.JAVA, StopWords.ENGLISH)));
     System.out.println(words);
     System.out.println(words2);
     assertThat(words.isEmpty(), is(false));

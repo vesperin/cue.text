@@ -31,33 +31,33 @@ import static java.util.stream.Collectors.toList;
 
 /**
  * Selection mixin
- * @param <T>
+ * @param <T> type of elements in a {@link Corpus} object.
  * @author Huascar Sanchez
  */
 public interface Selection <T> extends Executable {
   /**
-   * Selects the most relevant words in a corpus of source files.
+   * Selects the most relevant words in a corpus.
    *
-   * @param fromCode corpus
-   * @param tokenizer strategy for collecting words in the given code
+   * @param fromCorpus corpus object
+   * @param tokenizer strategy for collecting words in the given corpus
    * @param <T> type elements contained in the corpus.
    * @return a new list of relevant words
    */
-  static <T> List<Word> selects(Corpus<T> fromCode, WordsTokenizer tokenizer){
-    return selects(Integer.MAX_VALUE, fromCode, tokenizer);
+  static <T> List<Word> selects(Corpus<T> fromCorpus, WordsTokenizer tokenizer){
+    return selects(Integer.MAX_VALUE, fromCorpus, tokenizer);
   }
 
 
   /**
-   * Selects the most relevant words in a corpus of source files.
+   * Selects the most relevant words in a corpus.
    *
    * @param k limit the list to this number (capped to 10)
-   * @param fromCode corpus
+   * @param fromCorpus corpus
    * @param <T> type elements contained in the corpus.
    * @return a new list of relevant words
    */
-  static <T> List<Word> selects(int k, Corpus<T> fromCode, WordsTokenizer tokenizer){
-    return new SelectionImpl<T>().weightedWords(k, fromCode, tokenizer);
+  static <T> List<Word> selects(int k, Corpus<T> fromCorpus, WordsTokenizer tokenizer){
+    return new SelectionImpl<T>().topKWords(k, fromCorpus, tokenizer);
   }
 
 
@@ -72,26 +72,26 @@ public interface Selection <T> extends Executable {
   }
 
   /**
-   * Catches a list of words from a given source code.
+   * Selects a list of words from a given element.
    *
-   * @param code Java source file containing source code.
-   * @param tokenizer strategy for collecting words in the given code
+   * @param element an element of type {@literal T}
+   * @param tokenizer strategy for tokenizing the given element
    * @return a new list of words. Duplicate words are allowed.
    */
-  default List<Word> from(T code, WordsTokenizer tokenizer) {
-    final boolean isSource = code instanceof Source;
+  default List<Word> from(T element, WordsTokenizer tokenizer) {
+    final boolean isSource = element instanceof Source;
 
     if(isSource && !tokenizer.isLightweightTokenizer()){
-      final Source        src     = (Source) code;
+      final Source        src     = (Source) element;
       final Context       context = newContext(src);
       final UnitLocation  scope   = buildScope(context);
 
       if(scope == null) return Collections.emptyList();
       return from(scope, tokenizer);
     } else {
-      assert code instanceof String;
+      assert element instanceof String;
 
-      final String text = (String) code;
+      final String text = (String) element;
       return from(text, tokenizer);
     }
 
@@ -117,11 +117,14 @@ public interface Selection <T> extends Executable {
 
     tokenizer.tokenize(identifier, text);
 
-    return tokenizer.wordsList();
+    final List<Word> words = new ArrayList<>(tokenizer.wordsList());
+    tokenizer.clear();
+
+    return words;
   }
 
   /**
-   * Catches a list of words from a given located code block.
+   * Selects a list of words from a given located code block.
    *
    * @param scope Block of source code.
    * @param tokenizer strategy for collecting words in the given scope
@@ -144,13 +147,13 @@ public interface Selection <T> extends Executable {
   }
 
   /**
-   * It flattens a list of word duplicates.
+   * It deduplicates a list of words.
    *
    * @param code set of src files
    * @param tokenizer strategy for collecting words in the given code.
-   * @return the top k list of words.
+   * @return a list of unique words.
    */
-  default List<Word> flattenWordList(Corpus<T> code, WordsTokenizer tokenizer){
+  default List<Word> deduplicateWordList(Corpus<T> code, WordsTokenizer tokenizer){
     return frequentWords(Integer.MAX_VALUE, code, tokenizer);
   }
 
@@ -158,13 +161,13 @@ public interface Selection <T> extends Executable {
    * Filters the k most frequent words in the corpus.
    *
    * @param k limit the number words to k words.
-   * @param code set of src files
-   * @param tokenizer strategy for collecting words in the given code.
+   * @param corpus set of elements of type {@literal T}.
+   * @param tokenizer strategy for collecting words in the given corpus.
    * @return the top k list of words.
    */
-  default List<Word> frequentWords(int k, Corpus<T> code, WordsTokenizer tokenizer){
-    final List<Word> firstPass  = from(code, tokenizer);
-    final List<Word> secondPass = cleansing(tokenizer.stopWords(), firstPass);
+  default List<Word> frequentWords(int k, Corpus<T> corpus, WordsTokenizer tokenizer){
+    final List<Word> firstPass  = from(corpus, tokenizer);
+    final List<Word> secondPass = cleans(tokenizer.stopWords(), firstPass);
 
     return from(secondPass, new WordByFrequency(k));
   }
@@ -177,8 +180,8 @@ public interface Selection <T> extends Executable {
    * @param code the corpus.
    * @return a list of most representative words.
    */
-  default List<Word> weightedWords(int k, Corpus<T> code, WordsTokenizer tokenizer){
-    final List<Word> words = from(flattenWordList(code, tokenizer), new WordByCompositeWeight());
+  default List<Word> topKWords(int k, Corpus<T> code, WordsTokenizer tokenizer){
+    final List<Word> words = from(deduplicateWordList(code, tokenizer), new WordByCompositeWeight());
     if(words.isEmpty()) return words;
     final int topK = Math.min(Math.max(0, k), 150);
 
@@ -190,7 +193,7 @@ public interface Selection <T> extends Executable {
   }
 
 
-  static List<Word> cleansing(Set<StopWords> stopWords, List<Word> relevant){
+  static List<Word> cleans(Set<StopWords> stopWords, List<Word> relevant){
     return relevant.stream()
       .filter(w -> !Objects.isNull(w) && !StopWords.isStopWord(stopWords, w.element().toLowerCase(Locale.ENGLISH)))
       .map(w -> Noun.get().isPlural(w.element()) ? WordImpl.from(Noun.get().singularOf(w.element()), w.value(), w.container()) : w )
@@ -212,19 +215,19 @@ public interface Selection <T> extends Executable {
   }
 
   /**
-   * Catches a list of words from a given source code.
+   * Selects a list of words from a given corpus.
    *
-   * @param code set of Java source files containing source code.
-   * @param tokenizer strategy for collecting words in the given code.
+   * @param corpus set of elements of type {@literal T}.
+   * @param tokenizer strategy for collecting words in the given corpus.
    * @return a new list of words. Duplicate words are allowed.
    */
-  default List<Word> from(Corpus<T> code, final WordsTokenizer tokenizer) {
+  default List<Word> from(Corpus<T> corpus, final WordsTokenizer tokenizer) {
     final List<Word> result = new CopyOnWriteArrayList<>();
 
     final Collection<Callable<List<Word>>> tasks = new ArrayList<>();
-    code.dataSet().forEach(c -> tasks.add(() -> from(c, tokenizer)));
+    corpus.forEach(c -> tasks.add(() -> from(c, tokenizer)));
 
-    final ExecutorService service = scaleExecutor(code.size());
+    final ExecutorService service = scaleExecutor(corpus.size());
 
     try {
 

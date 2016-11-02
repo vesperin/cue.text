@@ -43,9 +43,9 @@ public class GroupingTest {
     final Corpus<Source> corpus = Corpus.ofSources();
     corpus.addAll(code);
 
-    words  = extractor.weightedWords(100, corpus, Tokenizers.tokenizeMethodDeclarationBody(Collections.emptySet(), StopWords.all()));
-    words1 = extractor.weightedWords(100, corpus, Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(), StopWords.of(StopWords.ENGLISH, StopWords.JAVA)));
-    words2 = extractor.weightedWords(100, corpus, Tokenizers.tokenizeMethodDeclarationName(Collections.emptySet(), StopWords.all()));
+    words  = extractor.topKWords(100, corpus, Tokenizers.tokenizeMethodDeclarationBody(Collections.emptySet(), StopWords.all()));
+    words1 = extractor.topKWords(100, corpus, Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(), StopWords.of(StopWords.ENGLISH, StopWords.JAVA)));
+    words2 = extractor.topKWords(100, corpus, Tokenizers.tokenizeMethodDeclarationName(Collections.emptySet(), StopWords.all()));
 
     documents = Docs.documents();
   }

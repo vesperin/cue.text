@@ -48,7 +48,7 @@ public class Index {
 
   /**
    * It creates an index based on a flatten word list
-   * (Set this ({@link Selection#flattenWordList(Corpus, WordsTokenizer)} method first).
+   * (Set this ({@link Selection#deduplicateWordList(Corpus, WordsTokenizer)} method first).
    *
    * @param words flatten Word List.
    * @return a new Index object.
