@@ -11,7 +11,7 @@ import com.vesperin.base.locators.UnitLocation;
 import com.vesperin.text.nouns.Noun;
 import com.vesperin.text.spelling.SpellCorrector;
 import com.vesperin.text.spelling.StopWords;
-import com.vesperin.text.tokenizers.ASTNodeWordsTokenizer;
+import com.vesperin.text.tokenizers.WordsInASTNodeTokenizer;
 import com.vesperin.text.tokenizers.WordsTokenizer;
 import com.vesperin.text.utils.Jamas;
 import com.vesperin.text.utils.Strings;
@@ -109,7 +109,12 @@ public interface Selection <T> extends Executable {
     if(text == null || text.isEmpty() || "".equals(text)) return Collections.emptyList();
 
     final int idx = text.lastIndexOf(".");
-    final String identifier = idx > 0 ? text.substring(idx, text.length()) : text;
+
+    final String identifier = (idx > 0
+      ? text.substring(idx, text.length())
+      : text
+    );
+
     tokenizer.tokenize(identifier, text);
 
     return tokenizer.wordsList();
@@ -130,7 +135,7 @@ public interface Selection <T> extends Executable {
     final UnitLocation  nonNull = optional.get();
     final ASTNode       node    = nonNull.getUnitNode();
 
-    final ASTNodeWordsTokenizer heavyWeightTokenizer = (ASTNodeWordsTokenizer) tokenizer;
+    final WordsInASTNodeTokenizer heavyWeightTokenizer = (WordsInASTNodeTokenizer) tokenizer;
     node.accept(heavyWeightTokenizer);
 
     final List<Word> words = new ArrayList<>(tokenizer.wordsList());

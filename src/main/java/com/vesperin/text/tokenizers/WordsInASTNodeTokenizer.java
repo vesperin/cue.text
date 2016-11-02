@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 /**
  * @author Huascar Sanchez
  */
-public abstract class ASTNodeWordsTokenizer extends SkeletalVisitor implements WordsTokenizer {
+public abstract class WordsInASTNodeTokenizer extends SkeletalVisitor implements WordsTokenizer {
 
   private final List<Word>      items;
   private final Set<StopWords>  stopWords;
@@ -38,7 +38,7 @@ public abstract class ASTNodeWordsTokenizer extends SkeletalVisitor implements W
    * @param whiteSet allowed words
    * @param stopWords disallowed words
    */
-  ASTNodeWordsTokenizer(Set<String> whiteSet, Set<StopWords> stopWords) {
+  WordsInASTNodeTokenizer(Set<String> whiteSet, Set<StopWords> stopWords) {
     this.whiteSet = whiteSet.stream()
       .map(s -> s.toLowerCase(Locale.ENGLISH))
       .collect(Collectors.toSet());

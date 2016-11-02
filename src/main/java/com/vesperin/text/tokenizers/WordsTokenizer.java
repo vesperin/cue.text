@@ -7,6 +7,7 @@ import com.vesperin.text.spelling.StopWords;
 import com.vesperin.text.utils.Similarity;
 import com.vesperin.text.utils.Strings;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -40,6 +41,16 @@ public interface WordsTokenizer extends Iterable<Word> {
   boolean isLightweightTokenizer();
 
   /**
+   * Tokenize a given text.
+   *
+   * @param text text to be tokenized.
+   * @return an array of Strings
+   */
+  default String[] tokenize(String text){
+    return Strings.wordSplit(text);
+  }
+
+  /**
    * Tokenize some text extracted from either a given container or the body of
    * a given container.
    *
@@ -49,7 +60,7 @@ public interface WordsTokenizer extends Iterable<Word> {
   default void tokenize(String text, String container){
     if (!skipThrowablesAlike(text)) {
       // make sure we have a valid split
-      String[] split = Strings.wordSplit(text);
+      String[] split = tokenize(text);
 
       // process all split tokens
       process(split, container);

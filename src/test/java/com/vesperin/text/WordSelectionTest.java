@@ -3,8 +3,8 @@ package com.vesperin.text;
 import com.google.common.collect.Sets;
 import com.vesperin.base.Source;
 import com.vesperin.text.Selection.Word;
-import com.vesperin.text.tokenizers.Tokenizers;
 import com.vesperin.text.spelling.StopWords;
+import com.vesperin.text.tokenizers.Tokenizers;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -18,6 +18,28 @@ import static org.junit.Assert.assertThat;
  * @author Huascar Sanchez
  */
 public class WordSelectionTest {
+
+  @Test public void testStringExtraction() throws Exception {
+
+    final Corpus<String> corpus = Corpus.ofStrings();
+    corpus.add("dd");
+    corpus.add("Util");
+    corpus.add("SetRelationDefinition");
+    corpus.add("OBOButtonPanel$2");
+    corpus.add("HrEditor");
+    corpus.add("AOMaster$NotTerminateFilter");
+    corpus.add("TypeInfoImpl");
+    corpus.add("WalkingIteratorSorted");
+    corpus.add("XThis$Handler");
+    corpus.add("ReplacingHistogram$2");
+    corpus.add("DefaultWorkingCopyOwner");
+
+
+    final Selection<String> selection = new WordDistilling<>();
+    final List<Word> words = selection.weightedWords(3, corpus, Tokenizers.tokenizeString());
+    assertThat(words.isEmpty(), is(false));
+  }
+
 
   @Test public void testBasicExtraction() throws Exception {
     final WordDistilling<Source> extractor = new WordDistilling<>();

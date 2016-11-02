@@ -99,7 +99,7 @@ final class Grammar {
       "toothpaste", "traffic", "trousers", "vinegar",
       "water", "weather", "wood", "wool", "work");
 
-    unchanged("criteria", "media", "data", "atlas");
+    unchanged("criteria", "media", "data", "atlas", "this");
   }
 
   private static void ensureValidExpression(String exp){

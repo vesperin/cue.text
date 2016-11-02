@@ -18,8 +18,8 @@ public class Tokenizers {
    *
    * @return
    */
-  public static ASTNodeWordsTokenizer tokenizeTypeDeclarationName(){
-    return new ClassNameWordsTokenizer(Collections.emptySet(), Collections.emptySet());
+  public static WordsInASTNodeTokenizer tokenizeTypeDeclarationName(){
+    return new WordsInClassNameTokenizer(Collections.emptySet(), Collections.emptySet());
   }
 
   /**
@@ -27,8 +27,8 @@ public class Tokenizers {
    * @param stopWords
    * @return
    */
-  public static ASTNodeWordsTokenizer tokenizeTypeDeclarationName(Set<StopWords> stopWords){
-    return new ClassNameWordsTokenizer(Collections.emptySet(), stopWords);
+  public static WordsInASTNodeTokenizer tokenizeTypeDeclarationName(Set<StopWords> stopWords){
+    return new WordsInClassNameTokenizer(Collections.emptySet(), stopWords);
   }
 
   /**
@@ -37,8 +37,8 @@ public class Tokenizers {
    * @param stopWords
    * @return
    */
-  public static ASTNodeWordsTokenizer tokenizeTypeDeclarationName(Set<String> whiteSet, Set<StopWords> stopWords){
-    return new ClassNameWordsTokenizer(whiteSet, stopWords);
+  public static WordsInASTNodeTokenizer tokenizeTypeDeclarationName(Set<String> whiteSet, Set<StopWords> stopWords){
+    return new WordsInClassNameTokenizer(whiteSet, stopWords);
   }
 
 
@@ -47,8 +47,8 @@ public class Tokenizers {
    *
    * @return
    */
-  public static ASTNodeWordsTokenizer tokenizeMethodDeclarationName(){
-    return new MethodNameWordsTokenizer(Collections.emptySet(), Collections.emptySet());
+  public static WordsInASTNodeTokenizer tokenizeMethodDeclarationName(){
+    return new WordsInMethodNameTokenizer(Collections.emptySet(), Collections.emptySet());
   }
 
   /**
@@ -56,8 +56,8 @@ public class Tokenizers {
    * @param stopWords
    * @return
    */
-  public static ASTNodeWordsTokenizer tokenizeMethodDeclarationName(Set<StopWords> stopWords){
-    return new MethodNameWordsTokenizer(Collections.emptySet(), stopWords);
+  public static WordsInASTNodeTokenizer tokenizeMethodDeclarationName(Set<StopWords> stopWords){
+    return new WordsInMethodNameTokenizer(Collections.emptySet(), stopWords);
   }
 
   /**
@@ -66,8 +66,8 @@ public class Tokenizers {
    * @param stopWords
    * @return
    */
-  public static ASTNodeWordsTokenizer tokenizeMethodDeclarationName(Set<String> whiteSet, Set<StopWords> stopWords){
-    return new MethodNameWordsTokenizer(whiteSet, stopWords);
+  public static WordsInASTNodeTokenizer tokenizeMethodDeclarationName(Set<String> whiteSet, Set<StopWords> stopWords){
+    return new WordsInMethodNameTokenizer(whiteSet, stopWords);
   }
 
 
@@ -75,8 +75,8 @@ public class Tokenizers {
    *
    * @return
    */
-  public static ASTNodeWordsTokenizer tokenizeMethodDeclarationBody(){
-    return new MethodBodyWordsTokenizer(Collections.emptySet(), Collections.emptySet());
+  public static WordsInASTNodeTokenizer tokenizeMethodDeclarationBody(){
+    return new WordsInMethodBodyTokenizer(Collections.emptySet(), Collections.emptySet());
   }
 
   /**
@@ -84,8 +84,8 @@ public class Tokenizers {
    * @param stopWords
    * @return
    */
-  public static ASTNodeWordsTokenizer tokenizeMethodDeclarationBody(Set<StopWords> stopWords){
-    return new MethodBodyWordsTokenizer(Collections.emptySet(), stopWords);
+  public static WordsInASTNodeTokenizer tokenizeMethodDeclarationBody(Set<StopWords> stopWords){
+    return new WordsInMethodBodyTokenizer(Collections.emptySet(), stopWords);
   }
 
   /**
@@ -94,8 +94,25 @@ public class Tokenizers {
    * @param stopWords
    * @return
    */
-  public static ASTNodeWordsTokenizer tokenizeMethodDeclarationBody(Set<String> whiteSet, Set<StopWords> stopWords){
-    return new MethodBodyWordsTokenizer(whiteSet, stopWords);
+  public static WordsInASTNodeTokenizer tokenizeMethodDeclarationBody(Set<String> whiteSet, Set<StopWords> stopWords){
+    return new WordsInMethodBodyTokenizer(whiteSet, stopWords);
+  }
+
+  /**
+   *
+   * @return
+   */
+  public static WordsInStringTokenizer tokenizeString(){
+    return new WordsInStringTokenizer(Collections.emptySet());
+  }
+
+  /**
+   *
+   * @param stopWords
+   * @return
+   */
+  public static WordsInStringTokenizer tokenizeString(Set<StopWords> stopWords){
+    return new WordsInStringTokenizer(stopWords);
   }
 
 

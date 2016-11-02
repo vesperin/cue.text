@@ -10,9 +10,9 @@ import java.util.Set;
 /**
  * @author Huascar Sanchez
  */
-class ClassNameWordsTokenizer extends ASTNodeWordsTokenizer {
+class WordsInClassNameTokenizer extends WordsInASTNodeTokenizer {
 
-  public ClassNameWordsTokenizer(Set<String> whiteSet, Set<StopWords> stopWords) {
+  WordsInClassNameTokenizer(Set<String> whiteSet, Set<StopWords> stopWords) {
     super(whiteSet, stopWords);
   }
 

@@ -20,8 +20,8 @@ import static java.util.stream.Collectors.toList;
 /**
  * @author Huascar Sanchez
  */
-class MethodBodyWordsTokenizer extends ASTNodeWordsTokenizer {
-  public MethodBodyWordsTokenizer(Set<String> whiteSet, Set<StopWords> stopWords) {
+class WordsInMethodBodyTokenizer extends WordsInASTNodeTokenizer {
+  WordsInMethodBodyTokenizer(Set<String> whiteSet, Set<StopWords> stopWords) {
     super(whiteSet, stopWords);
   }
 

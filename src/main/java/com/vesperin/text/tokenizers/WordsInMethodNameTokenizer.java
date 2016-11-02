@@ -11,8 +11,8 @@ import java.util.Set;
 /**
  * @author Huascar Sanchez
  */
-class MethodNameWordsTokenizer extends ASTNodeWordsTokenizer {
-  public MethodNameWordsTokenizer(Set<String> whiteSet, Set<StopWords> stopWords) {
+class WordsInMethodNameTokenizer extends WordsInASTNodeTokenizer {
+  WordsInMethodNameTokenizer(Set<String> whiteSet, Set<StopWords> stopWords) {
     super(whiteSet, stopWords);
   }
 
