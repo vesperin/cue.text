@@ -74,7 +74,7 @@ public class WordSelectionTest {
     final Corpus<Source> corpus = Corpus.ofSources();
     corpus.addAll(code);
 
-    final List<Word> words = Selection.selectRelevantWords(
+    final List<Word> words = Selection.selectFrequentWords(
       corpus,
       Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(),
         StopWords.all())
