@@ -43,8 +43,8 @@ public interface Selection <T> extends Executable {
    * @param <T> type elements contained in the corpus.
    * @return a new list of relevant words
    */
-  static <T> List<Word> selects(Corpus<T> fromCorpus, WordsTokenizer tokenizer){
-    return selects(Integer.MAX_VALUE, fromCorpus, tokenizer);
+  static <T> List<Word> selectRelevantWords(Corpus<T> fromCorpus, WordsTokenizer tokenizer){
+    return selectRelevantWords(Integer.MAX_VALUE, fromCorpus, tokenizer);
   }
 
 
@@ -56,7 +56,7 @@ public interface Selection <T> extends Executable {
    * @param <T> type elements contained in the corpus.
    * @return a new list of relevant words
    */
-  static <T> List<Word> selects(int k, Corpus<T> fromCorpus, WordsTokenizer tokenizer){
+  static <T> List<Word> selectRelevantWords(int k, Corpus<T> fromCorpus, WordsTokenizer tokenizer){
     return new SelectionImpl<T>().topKWords(k, fromCorpus, tokenizer);
   }
 

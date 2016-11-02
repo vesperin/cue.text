@@ -30,7 +30,7 @@ public class UsecaseTest {
     final Corpus<Source> corpus = Corpus.ofSources();
     corpus.addAll(sources);
 
-    words   = Selection.selects(
+    words   = Selection.selectRelevantWords(
       50,
       corpus,
       Tokenizers.tokenizeTypeDeclarationName(stopWords)
