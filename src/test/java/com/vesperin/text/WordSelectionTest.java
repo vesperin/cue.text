@@ -76,12 +76,15 @@ public class WordSelectionTest {
 
     final List<Word> words = Selection.selectAllFrequentWords(
       corpus,
-      Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(),
-        StopWords.all())
+      Tokenizers.tokenizeTypeDeclarationName()
     );
 
+    final List<Word> twords = Selection.typicalWords(corpus, Tokenizers.tokenizeTypeDeclarationName());
+    assertThat(twords.isEmpty(), is(false));
+
     // empty because all words are stop words
-    assertThat(words.isEmpty(), is(true));
+    assertThat(words.isEmpty(), is(false));
+    assertThat(words.containsAll(twords), is(true));
   }
 
   @Test public void testTop2Words() throws Exception {

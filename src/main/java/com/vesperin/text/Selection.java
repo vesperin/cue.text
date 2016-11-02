@@ -35,13 +35,38 @@ import static java.util.stream.Collectors.toList;
  * @author Huascar Sanchez
  */
 public interface Selection <T> extends Executable {
+
+  /**
+   * Selects the most typical words in a given corpus.
+   *
+   * @param fromCorpus corpus object.
+   * @param tokenizer strategy for collecting words in the given corpus
+   * @param <T> type elements contained in the corpus.
+   * @return a new list of typical words.
+   */
+  static <T> List<Word> typicalWords(Corpus<T> fromCorpus, WordsTokenizer tokenizer){
+    final List<Word> words = selectAllFrequentWords(fromCorpus, tokenizer);
+
+    final Map<String, Word> mapping = new HashMap<>();
+
+    for(Word each : words){
+      mapping.put(each.element(), each);
+    }
+
+    final List<String> typicals = Strings.typicalityRank(
+      mapping.keySet().stream().collect(toList())
+    );
+
+    return typicals.stream().map(mapping::get).collect(Collectors.toList());
+  }
+
   /**
    * Selects the most relevant words in a corpus.
    *
    * @param fromCorpus corpus object
    * @param tokenizer strategy for collecting words in the given corpus
    * @param <T> type elements contained in the corpus.
-   * @return a new list of relevant words
+   * @return a new list of frequent words
    */
   static <T> List<Word> selectAllFrequentWords(Corpus<T> fromCorpus, WordsTokenizer tokenizer){
     return topKFrequentWords(Integer.MAX_VALUE, fromCorpus, tokenizer);
@@ -51,10 +76,10 @@ public interface Selection <T> extends Executable {
   /**
    * Selects the most relevant words in a corpus.
    *
-   * @param k limit the list to this number (capped to 10)
+   * @param k limit the returned list to this number (capped to 10)
    * @param fromCorpus corpus
    * @param <T> type elements contained in the corpus.
-   * @return a new list of relevant words
+   * @return a new list of frequent words
    */
   static <T> List<Word> topKFrequentWords(int k, Corpus<T> fromCorpus, WordsTokenizer tokenizer){
     return new SelectionImpl<T>().topKWords(k, fromCorpus, tokenizer);
