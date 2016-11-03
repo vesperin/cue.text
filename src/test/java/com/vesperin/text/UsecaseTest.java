@@ -1,5 +1,6 @@
 package com.vesperin.text;
 
+import com.google.common.base.Stopwatch;
 import com.vesperin.base.Source;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
@@ -25,12 +26,21 @@ public class UsecaseTest {
   private static Set<StopWords> stopWords;
   private static List<Word>     targets;
 
+  private static Stopwatch      stopwatch;
+
   @BeforeClass public static void setup() throws Exception {
+    stopwatch = Stopwatch.createStarted();
+
     stopWords = StopWords.all();
+    System.out.println("loading stopwords: " + stopwatch);
+
     final Set<Source> sources = allSourceFiles();
+    System.out.println("loading source files: " + stopwatch);
 
     Corpus<Source> corpus = Corpus.ofSources();
     corpus.addAll(sources);
+
+    System.out.println("moving files to corpus: " + stopwatch);
 
     words   = Selection.topKFrequentWords(
       50,
@@ -38,9 +48,13 @@ public class UsecaseTest {
       Tokenizers.tokenizeTypeDeclarationName(stopWords)
     );
 
+    System.out.println("collecting top 50 frequent words: " + stopwatch);
+
     targets = Selection.typicalWords(corpus,
       Tokenizers.tokenizeTypeDeclarationName(stopWords)
     );
+
+    System.out.println("identifying the most typical words: " + stopwatch);
   }
 
   @Test public void systemTest0() throws Exception {
@@ -69,15 +83,23 @@ public class UsecaseTest {
   }
 
   @Test public void systemTest2() throws Exception {
+
     final List<Document> result = Query.Result.items(Query.documents(targets, words), Document.class);
+    System.out.println("finding classes sharing the typical words: " + stopwatch);
 
     final Grouping.Groups groups = Grouping.groupDocs(result);
+    System.out.println("clustering classes: " + stopwatch);
 
     assertNotNull(result);
     assertNotNull(groups);
 
-    System.out.println(groups);
+    for(Grouping.Group eachG : groups){
+      System.out.print(eachG);
+    }
 
+    System.out.println();
+    System.out.println("printing classes: " + stopwatch);
+    stopwatch.stop();
   }
 
 
