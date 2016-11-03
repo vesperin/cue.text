@@ -61,23 +61,23 @@ public class Index {
     return index;
   }
 
-  Set<Document> docSet(){
+  public Set<Document> docSet(){
     return indexMap.keySet();
   }
 
-  List<Word> wordList(){
+  public List<Word> wordList(){
     return wordList;
   }
 
-  Matrix wordDocFrequency(){
+  public Matrix wordDocFrequency(){
     return wordFrequencyMatrix;
   }
 
-  Matrix lsiMatrix(){
+  public Matrix lsiMatrix(){
     return lsiMatrix;
   }
 
-  void index(List<Word> words/*unique*/){
+  public void index(List<Word> words/*unique*/){
 
     final Map<String, List<Word>> map = new HashMap<>();
     final Set<Word> wordsSet = new LinkedHashSet<>();

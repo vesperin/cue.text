@@ -49,7 +49,7 @@ public class QueryTest {
     corpus.addAll(code);
 
     final List<Word>  words  = Selection.topKFrequentWords(100, corpus, Tokenizers.tokenizeMethodDeclarationBody(Collections.emptySet(), StopWords.all()));
-    final Groups      groups = Grouping.formWordGroups(words);
+    final Groups      groups = Grouping.groupWords(words);
     final Index       index  = groups.index();
 
     assertTrue(!groups.isEmpty());
@@ -73,10 +73,10 @@ public class QueryTest {
     corpus.addAll(code);
 
     final List<Word>  words   = Selection.topKFrequentWords(100, corpus, Tokenizers.tokenizeTypeDeclarationName(StopWords.of(StopWords.JAVA)));
-    final Groups      groups  = Grouping.formDocGroups(words);
+    final Groups      groups  = Grouping.groupDocsUsingWords(words);
 
-    final Map<Group, Index> mapping = Grouping.groupIndexMapping(words);
-    final Groups      groups1 = Grouping.reformDocGroups(mapping);
+    final Map<Group, Index> mapping = Grouping.buildGroupIndexMapping(words);
+    final Groups      groups1 = Grouping.regroupDocs(mapping);
 
 
     System.out.println("Printing group formation");
@@ -106,10 +106,10 @@ public class QueryTest {
     corpus.addAll(code);
 
     final List<Word>  words   = Selection.topKFrequentWords(100, corpus, Tokenizers.tokenizeTypeDeclarationName(StopWords.of(StopWords.JAVA)));
-    final Groups      groups  = Grouping.formDocGroups(words);
+    final Groups      groups  = Grouping.groupDocsUsingWords(words);
 
-    final Map<Grouping.Group, Index> mapping = Grouping.groupIndexMapping(words);
-    final Groups      groups1 = Grouping.reformDocGroups(mapping);
+    final Map<Grouping.Group, Index> mapping = Grouping.buildGroupIndexMapping(words);
+    final Groups      groups1 = Grouping.regroupDocs(mapping);
 
     System.out.println("Printing group reformation");
     System.out.println(groups1);
@@ -122,7 +122,7 @@ public class QueryTest {
 
 
     final Group  g1 = Group.merge(Document.class, groups);
-    final Groups g2 = Grouping.formDocGroups(g1);
+    final Groups g2 = Grouping.regroups(g1);
 
 
     assertTrue(!g2.isEmpty());
@@ -133,7 +133,7 @@ public class QueryTest {
       final Result result = Query.words(docs, index);
 
       assertNotNull(result);
-      assertTrue(Result.items(result, Word.class).size() < 3);
+      assertTrue(Result.items(result, Word.class).size() <= 3);
 
       System.out.println(Document.names(docs) + ": " + result);
     }
@@ -141,11 +141,11 @@ public class QueryTest {
 
   @Test public void testLabelExtraction() throws Exception {
     final Stopwatch start = Stopwatch.createStarted();
-    Grouping.Group g = new Grouping.BasicGroup();
+    Grouping.Group g = Grouping.newGroup();
     documents.forEach(g::add);
     System.out.println("creating a group:" + start);
 
-    final Grouping.Groups gp = Grouping.formDocGroups(g, 36);
+    final Grouping.Groups gp = Grouping.regroups(g, 36);
 
     System.out.println("forming groups of groups:" + start);
     for(Grouping.Group each : gp){

@@ -52,7 +52,7 @@ public class GroupingTest {
 
   @Test public void testWordGrouping() throws Exception {
     final Grouping grouping = new WordGrouping();
-    final Grouping.Groups groups = grouping.wordGroup(words);
+    final Grouping.Groups groups = grouping.ofWords(words);
 
     assertTrue(!groups.isEmpty());
 
@@ -62,7 +62,7 @@ public class GroupingTest {
 
   @Test public void testWordGrouping1() throws Exception {
     final Grouping grouping = new WordGrouping();
-    final Grouping.Groups groups = grouping.wordGroup(words1);
+    final Grouping.Groups groups = grouping.ofWords(words1);
 
     assertTrue(!groups.isEmpty());
 
@@ -72,7 +72,7 @@ public class GroupingTest {
 
   @Test public void testWordGrouping2() throws Exception {
     final Grouping grouping = new WordGrouping();
-    final Grouping.Groups groups = grouping.wordGroup(words2);
+    final Grouping.Groups groups = grouping.ofWords(words2);
 
     assertTrue(!groups.isEmpty());
 
@@ -82,7 +82,7 @@ public class GroupingTest {
 
   @Test public void testDocGrouping() throws Exception {
     final Grouping grouping = new WordGrouping();
-    final Grouping.Groups groups = grouping.docGroups(words);
+    final Grouping.Groups groups = grouping.ofDocs(words);
 
     assertTrue(!groups.isEmpty());
 
@@ -93,7 +93,7 @@ public class GroupingTest {
 
   @Test public void testDocGrouping1() throws Exception {
     final Grouping grouping = new WordGrouping();
-    final Grouping.Groups groups = grouping.docGroups(words1);
+    final Grouping.Groups groups = grouping.ofDocs(words1);
 
     assertTrue(!groups.isEmpty());
 
@@ -104,7 +104,7 @@ public class GroupingTest {
 
   @Test public void testDocGrouping2() throws Exception {
     final Grouping grouping = new WordGrouping();
-    final Grouping.Groups groups = grouping.docGroups(words1);
+    final Grouping.Groups groups = grouping.ofDocs(words1);
 
     assertTrue(!groups.isEmpty());
 
@@ -113,15 +113,15 @@ public class GroupingTest {
   }
 
   @Test public void testClusteringWithUnionFind() throws Exception {
-    Grouping.Group g = new Grouping.BasicGroup();
+    Grouping.Group g = Grouping.newGroup();
     documents.forEach(g::add);
 
-    final Grouping.Groups gp = Grouping.formDocGroups(g);
+    final Grouping.Groups gp = Grouping.regroups(g);
 
     assertThat(gp.isEmpty(), is(false));
 
     for(Grouping.Group eg : gp){
-      final Grouping.Groups gs = Grouping.formDocGroups(eg, 36);
+      final Grouping.Groups gs = Grouping.regroups(eg, 36);
 
       for(Grouping.Group eachG : gs){
         //assertThat(eachG.itemList().size() < 36, is(true));

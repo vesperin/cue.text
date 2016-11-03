@@ -33,7 +33,7 @@ public class StringsTest {
   }
 
   @Test public void testGroupsPruning() throws Exception {
-    final Grouping.Group  group  = new Grouping.BasicGroup();
+    final Grouping.Group  group  = Grouping.newGroup();
 
     group.add(new Selection.DocumentImpl(1, "org.ode4j.ode.DBox"));
     group.add(new Selection.DocumentImpl(2, "com.jme3.scene.shape.Box"));
@@ -41,7 +41,7 @@ public class StringsTest {
     group.add(new Selection.DocumentImpl(4, "org.dyn4j.sandbox.SandboxBody"));
 
     final Grouping.Groups oldGroups = Grouping.Groups.of(Collections.singletonList(group));
-    final Grouping.Groups groups    = Grouping.prune(oldGroups);
+    final Grouping.Groups groups    = Grouping.pruneDocGroups(oldGroups);
 
     assertTrue(!groups.isEmpty());
 

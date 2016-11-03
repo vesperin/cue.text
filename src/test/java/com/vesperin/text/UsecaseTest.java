@@ -45,14 +45,14 @@ public class UsecaseTest {
 
   @Test public void systemTest0() throws Exception {
 
-    final Grouping.Groups groups = Grouping.reformDocGroups(words);
+    final Grouping.Groups groups = Grouping.regroupDocs(words);
     assertNotNull(groups);
   }
 
   @Test public void systemTest1() throws Exception {
 
-    final Map<Grouping.Group, Index> mapping = Grouping.groupIndexMapping(words);
-    final Grouping.Groups groups = Grouping.reformDocGroups(mapping);
+    final Map<Grouping.Group, Index> mapping = Grouping.buildGroupIndexMapping(words);
+    final Grouping.Groups groups = Grouping.regroupDocs(mapping);
 
     final Index index = groups.index();
 
@@ -69,9 +69,15 @@ public class UsecaseTest {
   }
 
   @Test public void systemTest2() throws Exception {
-    final Query.Result result = Query.documents(targets, words);
+    final List<Document> result = Query.Result.items(Query.documents(targets, words), Document.class);
+
+    final Grouping.Groups groups = Grouping.groupDocs(result);
 
     assertNotNull(result);
+    assertNotNull(groups);
+
+    System.out.println(groups);
+
   }
 
 
