@@ -132,4 +132,28 @@ public class WordSelectionTest {
     System.out.println(words2);
     assertThat(words.isEmpty(), is(false));
   }
+
+  @Test public void testTypicalAndRepresentativeWords() throws Exception {
+    final Set<Source> code = Sets.newHashSet(
+      Codebase.quickSort("QuickSort1"),
+      Codebase.quickSort("QuickSort2"),
+      Codebase.quickSort("QuickSort3"),
+      Codebase.randomCode("Query1"),
+      Codebase.randomCode("Query2"),
+      Codebase.randomCode("Query3")
+    );
+
+    final Corpus<Source> corpus = Corpus.ofSources();
+    corpus.addAll(code);
+
+    final List<Word> words  = Selection.typicalWords(corpus, Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(), StopWords.of(StopWords.JAVA, StopWords.ENGLISH)));
+    final List<Word> words2 = Selection.representativeWords(corpus, Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(), StopWords.of(StopWords.JAVA, StopWords.ENGLISH)));
+
+    System.out.println(words);
+    System.out.println(words2);
+    assertThat(words.isEmpty(), is(false));
+    assertThat(words2.isEmpty(), is(true));
+    assertThat(words.containsAll(words2), is(true));
+
+  }
 }

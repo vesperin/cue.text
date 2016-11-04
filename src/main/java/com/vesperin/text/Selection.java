@@ -35,6 +35,32 @@ import static java.util.stream.Collectors.toList;
  * @author Huascar Sanchez
  */
 public interface Selection <T> extends Executable {
+  /**
+   * Selects the most representative words in a given corpus.
+   *
+   * @param fromCorpus corpus object.
+   * @param tokenizer strategy for collecting words in the given corpus
+   * @param <T> type elements contained in the corpus.
+   * @return a new list of typical words ordered by how representative they are to
+   *    the most relevant words in a corpus object. if the size of frequent words is
+   *    the same as the size of typical words, then the returned list will be empty.
+   */
+  static <T> List<Word> representativeWords(Corpus<T> fromCorpus, WordsTokenizer tokenizer){
+    final List<Word> words = frequentWords(fromCorpus, tokenizer);
+
+    final Map<String, Word> mapping = new HashMap<>();
+
+    for(Word each : words){
+      mapping.put(each.element(), each);
+    }
+
+    final List<String> representativeOnes = Strings.representativenessRank(
+      mapping.keySet().stream().collect(toList())
+    );
+
+    return representativeOnes.stream().map(mapping::get).collect(Collectors.toList());
+
+  }
 
   /**
    * Selects the most typical words in a given corpus.
