@@ -26,13 +26,13 @@ public class StringsTest {
     StopWords stopWords = StopWords.CUSTOM;
     stopWords.add("foo");
     final List<String> sorted   = Strings.typicalityRank(unsorted.size(), unsorted);
-    final List<String> repr     = Strings.representativenessRank(unsorted);
+    final List<String> repr     = Strings.representativenessRank(sorted.stream().collect(Collectors.toSet()), unsorted.stream().collect(Collectors.toSet()));
 
     assertEquals("Join", sorted.get(0));
     assertEquals("Joint", sorted.get(1));
     assertEquals("Jo", sorted.get(2));
 
-    assertEquals("Jo", repr.get(0));
+    assertThat(repr.isEmpty(), is(true));
   }
 
   @Test public void testGroupsPruning() throws Exception {

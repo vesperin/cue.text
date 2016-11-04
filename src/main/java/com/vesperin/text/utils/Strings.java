@@ -2,6 +2,8 @@ package com.vesperin.text.utils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.vesperin.text.spi.BasicExecutionMonitor;
+import com.vesperin.text.spi.ExecutionMonitor;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -17,13 +19,13 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static java.util.Collections.reverseOrder;
 import static java.util.stream.Collectors.toList;
 
 /**
  * @author Huascar Sanchez
  */
 public class Strings {
+  private static ExecutionMonitor LOGGER = BasicExecutionMonitor.get();
   private Strings(){}
 
   public static String[] wordSplit(String word){
@@ -94,21 +96,34 @@ public class Strings {
    * Re-ranks most typical words by representativeness. A typical word is representative
    * of its group if this word covers the max number of words in PopulationSet - TypicalSet.
    *
-   * @param data the list of all relevant words extracted from a corpus.
+   * @param typicalSet set of typical words
+   * @param universe set of frequent words
    * @return a list of words ordered by representativeness.
    */
-  public static List<String> representativenessRank(List<String> data){
-    final Set<String> typicalSet = typicalityRank(data).stream().collect(Collectors.toSet());
-    final Set<String> universe   = data.stream().collect(Collectors.toSet());
+  public static List<String> representativenessRank(Set<String> typicalSet, Set<String> universe){
 
     final Set<String> difference = Sets.difference(universe, typicalSet);
+
     final Map<String, List<String>> coverageRegion = generateCoverageRegion(typicalSet, difference);
 
+    logRepresentativenessResults("Representativeness Rank:", coverageRegion);
 
     return coverageRegion.entrySet().stream()
       .sorted((a, b) -> Integer.compare(b.getValue().size(), a.getValue().size()))
       .map(Map.Entry::getKey)
       .collect(toList());
+  }
+
+  private static void logRepresentativenessResults(String entering, Map<String, List<String>> coverageRegion){
+    final Map<String, Integer> votes = coverageRegion.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey,
+      e -> e.getValue().size()));
+
+    LOGGER.info(entering + " " + votes);
+  }
+
+  private static void logTypicalityResults(String entering, Map<String, Double> typicalityRanks){
+
+    LOGGER.info(entering + " " + typicalityRanks);
   }
 
   /**
@@ -161,6 +176,8 @@ public class Strings {
     Collections.shuffle(data);
 
     final Map<String, Double> T = typicalityQuery(data);
+
+    logTypicalityResults("Typicality Rank:", T);
 
     final List<String> ranked = T.keySet().stream()
       .sorted((a, b) -> Double.compare(T.get(b), T.get(a)))

@@ -1,6 +1,7 @@
 package com.vesperin.text;
 
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.Iterables;
 import com.vesperin.base.Source;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
@@ -42,17 +43,13 @@ public class UsecaseTest {
 
     System.out.println("moving files to corpus: " + stopwatch);
 
-    words   = Selection.topKFrequentWords(
-      50,
-      corpus,
-      Tokenizers.tokenizeTypeDeclarationName(stopWords)
-    );
+    final Map<List<Word>, List<Word>> mapping = Selection.frequentToTypicalMapping(corpus, Tokenizers.tokenizeTypeDeclarationName(stopWords));
+
+    words   = Iterables.get(mapping.keySet(), 0).stream().limit(50).collect(Collectors.toList());
 
     System.out.println("collecting top 50 frequent words: " + stopwatch);
 
-    targets = Selection.typicalWords(corpus,
-      Tokenizers.tokenizeTypeDeclarationName(stopWords)
-    );
+    targets = Iterables.get(mapping.values(), 0);
 
     System.out.println("identifying the most typical words: " + stopwatch);
   }

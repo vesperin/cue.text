@@ -1,6 +1,7 @@
 package com.vesperin.text;
 
 import Jama.Matrix;
+import com.google.common.collect.Iterables;
 import com.google.common.primitives.Doubles;
 import com.vesperin.base.Context;
 import com.vesperin.base.EclipseJavaParser;
@@ -24,10 +25,13 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.vesperin.text.spelling.Dictionary.isDefined;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Collectors.toSet;
 
 /**
  * Selection mixin
@@ -46,31 +50,32 @@ public interface Selection <T> extends Executable {
    *    the same as the size of typical words, then the returned list will be empty.
    */
   static <T> List<Word> representativeWords(Corpus<T> fromCorpus, WordsTokenizer tokenizer){
-    final List<Word> words = frequentWords(fromCorpus, tokenizer);
 
-    final Map<String, Word> mapping = new HashMap<>();
+    final Map<List<Word>, List<Word>> frequentToTypical = frequentToTypicalMapping(fromCorpus, tokenizer);
 
-    for(Word each : words){
-      mapping.put(each.element(), each);
-    }
+    if(frequentToTypical.isEmpty()) return Collections.emptyList();
 
-    final List<String> representativeOnes = Strings.representativenessRank(
-      mapping.keySet().stream().collect(toList())
-    );
+    final Map.Entry<List<Word>, List<Word>> entry = Iterables.get(frequentToTypical.entrySet(), 0);
 
+    // mapping for typical words
+    final Map<String, Word> mapping = entry.getValue().stream().collect(toMap(Word::element, Function.identity()));
+
+    final Set<String> universe = entry.getKey().stream().map(Word::element).collect(toSet());
+    final Set<String> typical  = entry.getValue().stream().map(Word::element).collect(toSet());
+
+    final List<String> representativeOnes = Strings.representativenessRank(typical, universe);
     return representativeOnes.stream().map(mapping::get).collect(Collectors.toList());
-
   }
 
   /**
-   * Selects the most typical words in a given corpus.
+   * Generates a mapping between frequent words and typical words.
    *
    * @param fromCorpus corpus object.
    * @param tokenizer strategy for collecting words in the given corpus
    * @param <T> type elements contained in the corpus.
-   * @return a new list of typical words.
+   * @return a mapping from frequent words to typical words.
    */
-  static <T> List<Word> typicalWords(Corpus<T> fromCorpus, WordsTokenizer tokenizer){
+  static <T> Map<List<Word>, List<Word>> frequentToTypicalMapping(Corpus<T> fromCorpus, WordsTokenizer tokenizer){
     final List<Word> words = frequentWords(fromCorpus, tokenizer);
 
     final Map<String, Word> mapping = new HashMap<>();
@@ -83,7 +88,24 @@ public interface Selection <T> extends Executable {
       mapping.keySet().stream().collect(toList())
     );
 
-    return typicals.stream().map(mapping::get).collect(Collectors.toList());
+    final List<Word> typicalWords = typicals.stream().map(mapping::get).collect(Collectors.toList());
+
+    return Collections.singletonMap(words, typicalWords);
+  }
+
+  /**
+   * Selects the most typical words in a given corpus.
+   *
+   * @param fromCorpus corpus object.
+   * @param tokenizer strategy for collecting words in the given corpus
+   * @param <T> type elements contained in the corpus.
+   * @return a mapping from frequent words to typical words.
+   */
+  static <T> List<Word> typicalWords(Corpus<T> fromCorpus, WordsTokenizer tokenizer){
+    final Map<List<Word>, List<Word>> mapping = frequentToTypicalMapping(fromCorpus, tokenizer);
+    if(mapping.isEmpty()) return Collections.emptyList();
+
+    return Iterables.get(mapping.values(), 0);
   }
 
   /**
