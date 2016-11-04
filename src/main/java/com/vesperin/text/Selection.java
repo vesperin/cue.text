@@ -58,13 +58,34 @@ public interface Selection <T> extends Executable {
     final Map.Entry<List<Word>, List<Word>> entry = Iterables.get(frequentToTypical.entrySet(), 0);
 
     // mapping for typical words
-    final Map<String, Word> mapping = entry.getValue().stream().collect(toMap(Word::element, Function.identity()));
+    final Map<String, Word> mapping = mapWords(entry.getValue());
 
-    final Set<String> universe = entry.getKey().stream().map(Word::element).collect(toSet());
-    final Set<String> typical  = entry.getValue().stream().map(Word::element).collect(toSet());
+    final List<Word> representativeOnes = representativeWords(entry.getValue(), entry.getKey(), mapping);
+
+    return representativeOnes.stream().map(mapping::get).collect(Collectors.toList());
+  }
+
+  /**
+   * Selects the most representative words in a given corpus.
+   *
+   * @param typicalList list of typical words
+   * @param universeList list of relevant words
+   * @param mapping mapping between frequent words and typical words
+   * @return a new list of typical words ordered by how representative they are to
+   *    the most relevant words in a corpus object. if the size of frequent words is
+   *    the same as the size of typical words, then the returned list will be empty.
+   */
+  static List<Word> representativeWords(List<Word> typicalList, List<Word> universeList, Map<String, Word> mapping){
+
+    final Set<String> universe = universeList.stream().map(Word::element).collect(toSet());
+    final Set<String> typical  = typicalList.stream().map(Word::element).collect(toSet());
 
     final List<String> representativeOnes = Strings.representativenessRank(typical, universe);
     return representativeOnes.stream().map(mapping::get).collect(Collectors.toList());
+  }
+
+  static Map<String, Word> mapWords(List<Word> words){
+    return words.stream().collect(toMap(Word::element, Function.identity()));
   }
 
   /**
