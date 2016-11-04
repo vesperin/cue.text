@@ -1,5 +1,6 @@
 package com.vesperin.text.utils;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import java.math.BigDecimal;
@@ -16,6 +17,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import static java.util.Collections.reverseOrder;
 import static java.util.stream.Collectors.toList;
 
 /**
@@ -86,6 +88,59 @@ public class Strings {
    */
   public static List<String> typicalityRank(List<String> data){
     return typicalityRank(chooseK(data), data);
+  }
+
+  /**
+   * Re-ranks most typical words by representativeness. A typical word is representative
+   * of its group if this word covers the max number of words in PopulationSet - TypicalSet.
+   *
+   * @param data the list of all relevant words extracted from a corpus.
+   * @return a list of words ordered by representativeness.
+   */
+  public static List<String> representativenessRank(List<String> data){
+    final Set<String> typicalSet = typicalityRank(data).stream().collect(Collectors.toSet());
+    final Set<String> universe   = data.stream().collect(Collectors.toSet());
+
+    final Set<String> difference = Sets.difference(universe, typicalSet);
+    final Map<String, List<String>> coverageRegion = generateCoverageRegion(typicalSet, difference);
+
+
+    return coverageRegion.entrySet().stream()
+      .sorted((a, b) -> Integer.compare(b.getValue().size(), a.getValue().size()))
+      .map(Map.Entry::getKey)
+      .collect(toList());
+  }
+
+  /**
+   * Generates a region of representativeness for a set of typical words.
+   *
+   * @param typicalSet the set of typical words
+   * @param difference the set of words in the set of all words not in the typical set.
+   * @return a mapping between typical word and list of words covered by this word.
+   */
+  public static Map<String, List<String>> generateCoverageRegion(Set<String> typicalSet, Set<String> difference) {
+    final Map<String, List<String>> coverageRegion = new HashMap<>();
+    for(String e : difference){
+      String min = null;
+      for(String o : typicalSet){
+        if(min == null) { min = o; } else {
+          final double eoDistance = Similarity.jaccardDistance(e, o);
+          final double moDistance = Similarity.jaccardDistance(min, o);
+
+          if(Double.compare(eoDistance, moDistance) < 0){
+            min = o;
+          }
+        }
+      }
+
+      if(!coverageRegion.containsKey(min)){
+        coverageRegion.put(min, Lists.newArrayList(e));
+      } else {
+        coverageRegion.get(min).add(e);
+      }
+    }
+
+    return coverageRegion;
   }
 
 
