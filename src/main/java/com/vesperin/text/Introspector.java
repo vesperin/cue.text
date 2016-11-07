@@ -102,7 +102,9 @@ public class Introspector {
     final List<Word> typicalWords = Iterables.get(mapping.keySet(), 0);
     final List<Word> universe     = Iterables.get(mapping.values(), 0);
 
-    MONITOR.info("Most frequent words " + Prints.toPrettyPrintedList(universe.stream().sorted((a, b) -> Integer.compare(b.value(), a.value())).collect(Collectors.toList()), true));
+    MONITOR.info("Most frequent words " + Prints.toPrettyPrintedList(
+      universe.stream().sorted((a, b) -> Integer.compare(b.value(), a.value())).collect(Collectors.toList()), true)
+    );
 
     final List<Document> relevantDocuments = Query.Result.items(
       Query.documents(typicalWords, universe), Document.class
