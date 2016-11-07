@@ -42,12 +42,16 @@ public class BasicExecutionMonitor implements ExecutionMonitor {
     }
   }
 
+  @Override public boolean isActive() {
+    return active;
+  }
+
   @Override public PrintStream outStream() {
     return out;
   }
 
   @Override public String toString() {
-    return "BasicExecutionMonitor(active=" + active + ")";
+    return "BasicExecutionMonitor(active=" + isActive() + ")";
   }
 
   private static class Installer {

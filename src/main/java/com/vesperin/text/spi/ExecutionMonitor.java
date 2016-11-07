@@ -22,8 +22,13 @@ public interface ExecutionMonitor {
    * @param s the important information
    */
   default void info(Object s){
-    outStream().println("INFO: " + s);
+    if(isActive()) outStream().println("INFO: " + s);
   }
+
+  /**
+   * @return true if the monitor is active.
+   */
+  boolean isActive();
 
   /**
    * Logs an error caused by some throwable.
@@ -32,8 +37,10 @@ public interface ExecutionMonitor {
    * @param throwable the actual error
    */
   default void error(Object s, Throwable throwable) {
-    outStream().println("ERROR: " + s);
-    throwable.printStackTrace(System.out);
+    if(isActive()){
+      outStream().println("ERROR: " + s);
+      throwable.printStackTrace(System.out);
+    }
   }
 
   /**
@@ -42,7 +49,7 @@ public interface ExecutionMonitor {
    * @param s the warning message
    */
   default void warn(Object s){
-    outStream().println("WARN: " + s);
+    if(isActive()) outStream().println("WARN: " + s);
   }
 
   /**

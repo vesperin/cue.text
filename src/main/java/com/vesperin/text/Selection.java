@@ -59,10 +59,7 @@ public interface Selection <T> extends Executable {
 
     // mapping for typical words
     final Map<String, Word> mapping = mapWords(entry.getValue());
-
-    final List<Word> representativeOnes = representativeWords(entry.getValue(), entry.getKey(), mapping);
-
-    return representativeOnes.stream().map(mapping::get).collect(Collectors.toList());
+    return representativeWords(entry.getValue(), entry.getKey(), mapping);
   }
 
   /**

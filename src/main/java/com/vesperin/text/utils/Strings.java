@@ -106,24 +106,41 @@ public class Strings {
 
     final Map<String, List<String>> coverageRegion = generateCoverageRegion(typicalSet, difference);
 
-    logRepresentativenessResults("Representativeness Rank:", coverageRegion);
-
-    return coverageRegion.entrySet().stream()
-      .sorted((a, b) -> Integer.compare(b.getValue().size(), a.getValue().size()))
+    final List<String> result = coverageRegion.entrySet().stream()
+      .sorted((a, b) -> Integer.compare((b.getValue().size()), (a.getValue().size())))
       .map(Map.Entry::getKey)
       .collect(toList());
+
+    logRepresentativenessResults("Representativeness Rank:", coverageRegion, result);
+
+    return result;
   }
 
-  private static void logRepresentativenessResults(String entering, Map<String, List<String>> coverageRegion){
-    final Map<String, Integer> votes = coverageRegion.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey,
-      e -> e.getValue().size()));
+  private static void logRepresentativenessResults(String entering, Map<String, List<String>> coverageRegion, List<String> result){
+    if(!LOGGER.isActive()) return;
 
-    LOGGER.info(entering + " " + votes);
+    if(coverageRegion.isEmpty()){
+      LOGGER.info(entering + " " + "Empty coverage region. No representative words!");
+    } else {
+
+      final double sum = result.stream().mapToDouble(s -> coverageRegion.get(s).size()).sum();
+
+      final Map<String, Double> temp = new HashMap<>();
+
+      result.forEach(s -> temp.put(s, coverageRegion.get(s).size()/sum));
+
+      LOGGER.info(entering + " " + Prints.toPrettyPrintedMap(Prints.sortByValue(temp)));
+    }
+
   }
 
-  private static void logTypicalityResults(String entering, Map<String, Double> typicalityRanks){
+  private static void logTypicalityResults(String entering, Map<String, Double> typicalityRanks, List<String> limitedResult){
+    if(!LOGGER.isActive()) return;
 
-    LOGGER.info(entering + " " + typicalityRanks);
+    final Map<String, Double> sorted = new HashMap<>();
+    limitedResult.forEach(s -> sorted.put(s, typicalityRanks.get(s)));
+
+    LOGGER.info(entering + " " + Prints.toPrettyPrintedMap(Prints.sortByValue(sorted)));
   }
 
   /**
@@ -177,15 +194,18 @@ public class Strings {
 
     final Map<String, Double> T = typicalityQuery(data);
 
-    logTypicalityResults("Typicality Rank:", T);
-
     final List<String> ranked = T.keySet().stream()
       .sorted((a, b) -> Double.compare(T.get(b), T.get(a)))
       .collect(toList());
 
-    return ranked.stream()
+    final List<String> result = ranked.stream()
       .filter(s -> !Objects.isNull(s)).limit(k)
       .collect(toList());
+
+
+    logTypicalityResults("Typicality Rank:", T, result);
+
+    return result;
   }
 
   /**
