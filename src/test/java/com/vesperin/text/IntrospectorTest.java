@@ -7,6 +7,7 @@ import com.vesperin.text.tokenizers.Tokenizers;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -53,6 +54,22 @@ public class IntrospectorTest {
     final List<Word> representativeWords = Introspector.representativeWords(
       corpus, Tokenizers.tokenizeTypeDeclarationName(StopWords.all())
     );
+
+    assertThat(representativeWords.isEmpty(), is(false));
+  }
+
+
+  @Test public void testCorpusRepresentativeness2() throws Exception {
+    final Set<Source> sources = allSourceFiles();
+
+    Corpus<Source> corpus = Corpus.ofSources();
+    corpus.addAll(sources);
+
+    final Map<List<Word>, List<Word>> relevantMapping = Introspector.generateRelevantMapping(
+      corpus, Tokenizers.tokenizeTypeDeclarationName(StopWords.all())
+    );
+
+    final List<Word> representativeWords = Introspector.representativeWords(relevantMapping);
 
     assertThat(representativeWords.isEmpty(), is(false));
   }

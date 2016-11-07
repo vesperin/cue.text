@@ -9,8 +9,10 @@ import com.vesperin.text.spi.ExecutionMonitor;
 import com.vesperin.text.tokenizers.WordsTokenizer;
 import com.vesperin.text.utils.Prints;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -70,6 +72,21 @@ public class Introspector {
     );
 
     return representativeOnes;
+  }
+
+  /**
+   * Finds the most representative words of a corpus object.
+   * @param mapping mapping from a list of frequent words to a list of typical words
+   * @return list of representative words
+   */
+  public static List<Word> representativeWords(Map<List<Word>, List<Word>> mapping){
+    if(mapping.isEmpty()) return Collections.emptyList();
+
+    final List<Word> frequentOnes = Iterables.get(mapping.keySet(), 0);
+    final List<Word> typicalOnes  = Iterables.get(mapping.values(), 0);
+
+
+    return Selection.representativeWords(typicalOnes, frequentOnes, Selection.mapWords(typicalOnes));
   }
 
 
