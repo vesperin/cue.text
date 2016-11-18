@@ -331,7 +331,7 @@ public interface Selection <T> extends Executable {
     }
 
     shutdownService(service);
-    return result;
+    return result.stream().filter(w -> null != w).collect(toList());
   }
 
 

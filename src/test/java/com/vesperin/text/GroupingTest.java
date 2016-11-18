@@ -166,7 +166,7 @@ public class GroupingTest {
     documents.clear();
     documents = null;
     System.out.println("resetting everything: " + stopwatch);
-    stopwatch.stop();
+    stopwatch = stopwatch.stop();
     stopwatch = null;
   }
 }

@@ -84,6 +84,9 @@ public class Index {
     wordsSet.addAll(words);
 
     for(Word each : words){
+      if(Objects.isNull(each) || Objects.isNull(each.container())){
+        System.out.println();
+      }
       final Set<String> docs = each.container();
 
       for(String doc : docs){

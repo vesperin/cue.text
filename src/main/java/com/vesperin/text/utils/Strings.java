@@ -1,21 +1,14 @@
 package com.vesperin.text.utils;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.vesperin.text.spi.BasicExecutionMonitor;
 import com.vesperin.text.spi.ExecutionMonitor;
+import com.vesperin.text.spi.StringMagnet;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -152,27 +145,64 @@ public class Strings {
    */
   public static Map<String, List<String>> generateCoverageRegion(Set<String> typicalSet, Set<String> difference) {
     final Map<String, List<String>> coverageRegion = new HashMap<>();
-    for(String e : difference){
-      String min = null;
-      for(String o : typicalSet){
-        if(min == null) { min = o; } else {
-          final double eoDistance = Similarity.jaccardDistance(e, o);
-          final double moDistance = Similarity.jaccardDistance(min, o);
 
-          if(Double.compare(eoDistance, moDistance) < 0){
-            min = o;
-          }
+    // init coverage map
+    for(String each : typicalSet){
+      coverageRegion.put(each, new ArrayList<>());
+    }
+
+
+    for(String e : difference){
+      String min = Iterables.get(typicalSet, 0);
+      for(String t : typicalSet){
+
+        final double eoDistance = Similarity.jaccardDistance(e, t);
+        final double moDistance = Similarity.jaccardDistance(e, min);
+
+        if(Double.compare(eoDistance, moDistance) < 0){
+          min = t;
         }
       }
 
-      if(!coverageRegion.containsKey(min)){
-        coverageRegion.put(min, Lists.newArrayList(e));
-      } else {
-        coverageRegion.get(min).add(e);
-      }
+      coverageRegion.get(min).add(e);
+
     }
 
     return coverageRegion;
+  }
+
+  // todo FINISH
+  public static Map<String, List<String>> generateCoverageRegion(Set<String> typicalSet, Set<String> difference, StringMagnet magnet) {
+    final Map<String, List<String>> typicalCoverage = new HashMap<>();
+    final Map<String, List<String>> wordCoverage    = new HashMap<>();
+
+
+    // init coverage map
+    for(String each : typicalSet){
+      typicalCoverage.put(each, new ArrayList<>());
+    }
+
+
+    for(String e : difference){
+
+      wordCoverage.put(e, new ArrayList<>());
+
+      String min = Iterables.get(typicalSet, 0);
+      for(String t : typicalSet){
+
+        if(magnet.apply(e, t, min)){
+          min = t;
+        }
+
+      }
+
+      if(!Strings.intersect(min, e).isEmpty()) {
+
+        typicalCoverage.get(min).add(e);
+      }
+    }
+
+    return typicalCoverage;
   }
 
 
@@ -393,6 +423,10 @@ public class Strings {
     }
 
     curated = curated.isEmpty() ? text : curated;
+
+    final int idx = curated.lastIndexOf("$");
+    curated = idx > 0 ? curated.substring(0, idx) : curated;
+
     curated = Character.isUpperCase(curated.charAt(curated.length() - 1))
       ? curated.substring(0, curated.length() - 1)
       : curated;
@@ -436,5 +470,4 @@ public class Strings {
     String[] x = Strings.wordSplit("La vida \n super sonicCamel");
     Arrays.stream(x).forEach(System.out::println);
   }
-
 }

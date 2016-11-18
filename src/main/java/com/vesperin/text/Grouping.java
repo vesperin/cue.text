@@ -1,6 +1,10 @@
 package com.vesperin.text;
 
 import Jama.Matrix;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
+import com.google.common.graph.GraphBuilder;
+import com.google.common.graph.MutableGraph;
 import com.google.common.primitives.Doubles;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
@@ -9,6 +13,7 @@ import com.vesperin.text.groups.kmeans.DocumentKMeans;
 import com.vesperin.text.groups.kmeans.WordKMeans;
 import com.vesperin.text.groups.kruskal.UnionFindMagnet;
 import com.vesperin.text.utils.Jamas;
+import com.vesperin.text.utils.PartitionIterable;
 import com.vesperin.text.utils.Strings;
 
 import java.util.*;
@@ -23,7 +28,7 @@ import static java.util.stream.Collectors.toList;
  *
  * @author Huascar Sanchez
  */
-public interface Grouping {
+public interface Grouping extends Executable {
 
   /**
    * @return a new Basic Group
@@ -40,7 +45,18 @@ public interface Grouping {
   }
 
   /**
-   * X-Assigns words to specific groups.
+   * Enumerate all groups from a list of projects.
+   *
+   * @param projects the list
+   * @param <T>
+   * @return
+   */
+  static <T> Groups enumerateGroups(List<Project<T>> projects){
+    return new GroupingImpl().ofProjects(projects);
+  }
+
+  /**
+   * Assigns words to specific groups.
    *
    * @param selectedWords relevant words list.
    * @return a new Groups object.
@@ -50,7 +66,7 @@ public interface Grouping {
   }
 
   /**
-   * X-Assigns documents to specific groups.
+   * Assigns documents to specific groups.
    *
    * @param selectedWords relevant words list. See {@link #groupWords(List)}
    * @return a new Groups object.
@@ -94,7 +110,7 @@ public interface Grouping {
   }
 
   /**
-   * X-Creates a mapping from a group to its index.
+   * Creates a mapping from a group to its index.
    *
    * @param selectedWords words to create index and then group.
    * @return a new mapping.
@@ -111,7 +127,7 @@ public interface Grouping {
   }
 
   /**
-   * X-Assigns documents in an existing group to a new set of groups.
+   * Assigns documents in an existing group to a new set of groups.
    *
    * @param selectedGroup clustered documents.
    * @param cap max size of each group.
@@ -153,12 +169,12 @@ public interface Grouping {
    * @return a new Groups object.
    */
   static Groups regroups(Group selectedGroup){
-    return regroups(selectedGroup, 20);
+    return regroups(selectedGroup, 150);
   }
 
 
   /**
-   * X-Assigns documents in an existing group to a new set of groups.
+   * Assigns documents in an existing group to a new set of groups.
    *
    * @param documents list of documents.
    * @return a new Groups object.
@@ -173,8 +189,65 @@ public interface Grouping {
   }
 
 
+
+
   /**
-   * X-Groups a list of words using the Kmeans clustering algorithm.
+   * todo FINISH
+   * @param projects
+   * @return
+   */
+  default <T> Groups ofProjects(List<Project<T>> projects){
+
+    final MutableGraph<Project<T>> graph = GraphBuilder.directed()
+      .allowsSelfLoops(false)
+      .build();
+
+    final int threshold = 6;
+
+    if(Objects.isNull(projects)) return Groups.emptyGroups();
+    if(projects.isEmpty())  return Groups.emptyGroups();
+
+    Project<T> max = Iterables.get(projects, 0);
+    for (Project<T> each : projects){
+      final Set<Word> s1 = max.wordSet();
+      final Set<Word> s2 = each.wordSet();
+
+      if(Math.max(Sets.intersection(s1, s2).size(), threshold) >= threshold){
+        graph.putEdge(max, each);
+      }
+
+    }
+
+    return Groups.emptyGroups();
+
+
+
+//    final MutableGraph<String> graph = GraphBuilder.directed()
+//      .allowsSelfLoops(false)
+//      .build();
+//
+//    final List<Group> groups = new ArrayList<>();
+//    for (int blocks = 1; blocks <= projects.size(); ++blocks) {
+//      final PartitionIterable<Project<T>> partitions = new PartitionIterable<>(
+//        projects, blocks
+//      );
+//
+//      final Group group = newGroup();
+//      for (List<List<Project<T>>> each : partitions) {
+//        // todo[Huascar] implement eval(each) >= overlapping factor
+//        // if eval(each) >= overlapping factor
+//        //    group.add(each)
+//        group.add(each);
+//      }
+//
+//      groups.add(group);
+//    }
+//
+//    return Groups.of(groups, new Index());
+  }
+
+  /**
+   * Groups a list of words using the Kmeans clustering algorithm.
    *
    * @param words a non empty list of words to be clustered.
    * @return a list of clusters.
@@ -187,7 +260,7 @@ public interface Grouping {
   }
 
   /**
-   * X-Groups a list of documents containing words that are in input or list of words.
+   * Groups a list of documents containing words that are in input or list of words.
    * Kmeans clustering algorithm is the default clustering algorithm.
    *
    * @param words a non empty list of words to be clustered.
@@ -201,7 +274,7 @@ public interface Grouping {
   }
 
   /**
-   * X-Regroups an existing group based on the longest common sub-sequence metric.
+   * Regroups an existing group based on the longest common sub-sequence metric.
    *
    * @param group group to be regroup-ed
    * @return a new clusters object.
