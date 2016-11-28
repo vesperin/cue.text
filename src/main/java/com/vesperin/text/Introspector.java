@@ -9,7 +9,6 @@ import com.vesperin.text.spi.ExecutionMonitor;
 import com.vesperin.text.tokenizers.WordsTokenizer;
 import com.vesperin.text.utils.Prints;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -61,6 +60,8 @@ public class Introspector {
    * @return a new list of words ordered by corpus representativeness
    */
   public static <T> List<Word> representativeWords(Corpus<T> corpus, WordsTokenizer tokenizer){
+
+
     final List<Word> representativeOnes = Selection.representativeWords(corpus, tokenizer);
 
     MONITOR.info(
@@ -79,13 +80,7 @@ public class Introspector {
    * @return list of representative words
    */
   public static List<Word> representativeWords(Map<List<Word>, List<Word>> mapping){
-    if(mapping.isEmpty()) return Collections.emptyList();
-
-    final List<Word> frequentOnes = Iterables.get(mapping.keySet(), 0);
-    final List<Word> typicalOnes  = Iterables.get(mapping.values(), 0);
-
-
-    return Selection.representativeWords(typicalOnes, frequentOnes, Selection.mapWords(typicalOnes));
+    return Selection.representativeWords(mapping);
   }
 
 

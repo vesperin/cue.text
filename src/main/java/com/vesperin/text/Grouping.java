@@ -13,7 +13,6 @@ import com.vesperin.text.groups.kmeans.DocumentKMeans;
 import com.vesperin.text.groups.kmeans.WordKMeans;
 import com.vesperin.text.groups.kruskal.UnionFindMagnet;
 import com.vesperin.text.utils.Jamas;
-import com.vesperin.text.utils.PartitionIterable;
 import com.vesperin.text.utils.Strings;
 
 import java.util.*;

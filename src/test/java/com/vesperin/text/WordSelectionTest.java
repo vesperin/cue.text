@@ -4,7 +4,6 @@ import com.google.common.collect.Sets;
 import com.vesperin.base.Source;
 import com.vesperin.text.Selection.Word;
 import com.vesperin.text.spelling.StopWords;
-import com.vesperin.text.spi.Magnets;
 import com.vesperin.text.tokenizers.Tokenizers;
 import com.vesperin.text.utils.Strings;
 import org.junit.Test;
@@ -168,7 +167,7 @@ public class WordSelectionTest {
     final Set<String> terms     = words.stream().map(Word::element).collect(Collectors.toSet());
     final Set<String> universe  = corpus.dataSet();
 
-    final Map<String, List<String>> map = Strings.generateCoverageRegion(terms, universe, Magnets.createStringSimilarityMagnet());
+    final Map<String, List<String>> map = Strings.generateCoverageRegion(terms, universe);
     System.out.println(map);
 
   }

@@ -15,6 +15,7 @@ import com.vesperin.text.spelling.StopWords;
 import com.vesperin.text.tokenizers.WordsInASTNodeTokenizer;
 import com.vesperin.text.tokenizers.WordsTokenizer;
 import com.vesperin.text.utils.Jamas;
+import com.vesperin.text.utils.Samples;
 import com.vesperin.text.utils.Strings;
 import org.eclipse.jdt.core.dom.ASTNode;
 
@@ -52,14 +53,33 @@ public interface Selection <T> extends Executable {
   static <T> List<Word> representativeWords(Corpus<T> fromCorpus, WordsTokenizer tokenizer){
 
     final Map<List<Word>, List<Word>> frequentToTypical = frequentToTypicalMapping(fromCorpus, tokenizer);
+    return representativeWords(frequentToTypical);
+  }
 
-    if(frequentToTypical.isEmpty()) return Collections.emptyList();
 
-    final Map.Entry<List<Word>, List<Word>> entry = Iterables.get(frequentToTypical.entrySet(), 0);
+  /**
+   * Finds the most representative words of a corpus object.
+   * @param mapping mapping from a list of frequent words to a list of typical words
+   * @return list of representative words
+   */
+  static List<Word> representativeWords(Map<List<Word>, List<Word>> mapping){
+    if(mapping.isEmpty()) return Collections.emptyList();
 
-    // mapping for typical words
-    final Map<String, Word> mapping = mapWords(entry.getValue());
-    return representativeWords(entry.getValue(), entry.getKey(), mapping);
+    final List<Word> frequentOnes = Iterables.get(mapping.keySet(), 0);
+    final List<Word> typicalOnes  = Iterables.get(mapping.values(), 0);
+
+    final int sizeF = frequentOnes.size();
+    final int sizeT = typicalOnes.size();
+
+    if(sizeF == sizeT){
+      final int k = Samples.chooseK(typicalOnes);
+      final List<Word> reducedTypicalityOnes = typicalOnes.stream().limit(k).collect(Collectors.toList());
+      return Selection.representativeWords(reducedTypicalityOnes, frequentOnes, Selection.mapWords(reducedTypicalityOnes));
+    } else if (sizeF > sizeT) {
+      return Selection.representativeWords(typicalOnes, frequentOnes, Selection.mapWords(typicalOnes));
+    } else {
+      throw new IllegalStateException("Frequent set is greater than typical set!");
+    }
   }
 
   /**
@@ -102,11 +122,13 @@ public interface Selection <T> extends Executable {
       mapping.put(each.element(), each);
     }
 
-    final List<String> typicals = Strings.typicalityRank(
-      mapping.keySet().stream().collect(toList())
-    );
+    final List<String> entryList = mapping.keySet().stream().collect(toList());
 
-    final List<Word> typicalWords = typicals.stream().map(mapping::get).collect(Collectors.toList());
+    final List<String> typicals = Strings.typicalityRank(entryList);
+
+    final List<Word> typicalWords = typicals.stream()
+      .map(mapping::get)
+      .collect(Collectors.toList());
 
     return Collections.singletonMap(words, typicalWords);
   }

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.StringTokenizer;
 import java.util.regex.Pattern;
 
@@ -171,7 +172,7 @@ public final class Splits {
   public static String[] removeIllegal(String[] arr, boolean camelizeFirst) {
     final String[] nonEmpty = removeEmpty(arr);
 
-    ArrayList<String> list = new ArrayList<>();
+    final List<String> list = new ArrayList<>();
     for (String s : nonEmpty) {
 
       if (s != null

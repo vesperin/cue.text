@@ -3,21 +3,65 @@ package com.vesperin.text;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.vesperin.text.Selection.Document;
+import com.vesperin.text.nouns.Noun;
 import com.vesperin.text.utils.Strings;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toConcurrentMap;
+import static java.util.stream.Collectors.toList;
 
 /**
  * @author Huascar Sanchez
  */
 public interface Recommend {
+
+  /**
+   * Generates a mapping between relevant words and words in a corpus.
+   *
+   * @param relevantSet set of relevant words
+   * @param allSet set of all words in corpus.
+   * @return a new mapping between typical words and all words in a corpus.
+   */
+  static Map<String, List<String>> mappingOfLabels(Set<String> relevantSet, Set<String> allSet) {
+    final Map<String, List<String>> typicalCoverage = new HashMap<>();
+
+    // init coverage map
+    for(String each : relevantSet){
+      typicalCoverage.put(each, new ArrayList<>());
+    }
+
+
+    for(String e : allSet){
+
+      final List<String> a = Arrays.stream(Strings.wordSplit(e))
+        .map(Noun::toSingular)
+        .collect(toList());
+
+      for(String t : relevantSet){
+        final List<String> b = Arrays.stream(Strings.wordSplit(t))
+          .map(Noun::toSingular)
+          .collect(toList());
+
+        if(!Strings.intersect(a, b).isEmpty()){
+          typicalCoverage.get(t).add(e);
+        }
+
+      }
+
+    }
+
+    return typicalCoverage;
+  }
+
 
   /**
    * Coalesces a list of labels into one label.

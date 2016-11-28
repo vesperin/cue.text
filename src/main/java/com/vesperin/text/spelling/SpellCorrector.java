@@ -39,7 +39,7 @@ public enum SpellCorrector implements Corrector {
     try {
       populateDictionary(index, this.wordToFrequency);
     } catch (IOException e) {
-      throw new IllegalStateException("Unable to populate dictionary!");
+      throw new IllegalStateException("Unable to populate dictionary. Cannot find big.txt file!");
     }
   }
 

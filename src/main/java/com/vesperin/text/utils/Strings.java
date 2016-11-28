@@ -4,7 +4,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.vesperin.text.spi.BasicExecutionMonitor;
 import com.vesperin.text.spi.ExecutionMonitor;
-import com.vesperin.text.spi.StringMagnet;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -53,25 +52,13 @@ public class Strings {
     return suffix;
   }
 
-  private static Set<String> intersect(List<String> a, List<String> b){
+  public static Set<String> intersect(List<String> a, List<String> b){
     final Predicate<String> skipNumbers     = w -> !isNumber(w);
     final Predicate<String> skipSingleChar  = w -> w.length() > 1 && !w.isEmpty();
     final Set<String> aa = a.stream().filter(skipNumbers.or(skipSingleChar)).collect(Collectors.toSet());
     final Set<String> bb = b.stream().filter(skipNumbers.or(skipSingleChar)).collect(Collectors.toSet());
 
     return Sets.intersection(aa, bb);
-  }
-
-  /**
-   * Choose the K value from a list of strings.
-   * @param data list of strings.
-   * @return the k value
-   */
-  private static int chooseK(List<String> data){
-    if(Objects.isNull(data)) return 0;
-    if(data.isEmpty())       return 0;
-
-    return (int) Math.ceil(Math.sqrt(data.size()));
   }
 
   /**
@@ -82,7 +69,8 @@ public class Strings {
    * @return a new sorted list of string elements.
    */
   public static List<String> typicalityRank(List<String> data){
-    return typicalityRank(chooseK(data), data);
+    if(Objects.isNull(data)) return Collections.emptyList();
+    return typicalityRank(data.size(), data);
   }
 
   /**
@@ -100,6 +88,7 @@ public class Strings {
     final Map<String, List<String>> coverageRegion = generateCoverageRegion(typicalSet, difference);
 
     final List<String> result = coverageRegion.entrySet().stream()
+      .filter(e -> !e.getValue().isEmpty())
       .sorted((a, b) -> Integer.compare((b.getValue().size()), (a.getValue().size())))
       .map(Map.Entry::getKey)
       .collect(toList());
@@ -171,40 +160,6 @@ public class Strings {
     return coverageRegion;
   }
 
-  // todo FINISH
-  public static Map<String, List<String>> generateCoverageRegion(Set<String> typicalSet, Set<String> difference, StringMagnet magnet) {
-    final Map<String, List<String>> typicalCoverage = new HashMap<>();
-    final Map<String, List<String>> wordCoverage    = new HashMap<>();
-
-
-    // init coverage map
-    for(String each : typicalSet){
-      typicalCoverage.put(each, new ArrayList<>());
-    }
-
-
-    for(String e : difference){
-
-      wordCoverage.put(e, new ArrayList<>());
-
-      String min = Iterables.get(typicalSet, 0);
-      for(String t : typicalSet){
-
-        if(magnet.apply(e, t, min)){
-          min = t;
-        }
-
-      }
-
-      if(!Strings.intersect(min, e).isEmpty()) {
-
-        typicalCoverage.get(min).add(e);
-      }
-    }
-
-    return typicalCoverage;
-  }
-
 
   /**
    * Sorts string by their typicality (or membership); i.e., how closely related each string
@@ -218,7 +173,7 @@ public class Strings {
 
     if(data.size() < 2) return data;
 
-    k = k < 1 ? chooseK(data) : k;
+    k = k < 1 ? Samples.chooseK(data) : k;
 
     Collections.shuffle(data);
 
