@@ -1,10 +1,6 @@
 package com.vesperin.text;
 
 import Jama.Matrix;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
-import com.google.common.graph.GraphBuilder;
-import com.google.common.graph.MutableGraph;
 import com.google.common.primitives.Doubles;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
@@ -14,6 +10,7 @@ import com.vesperin.text.groups.kmeans.WordKMeans;
 import com.vesperin.text.groups.kruskal.UnionFindMagnet;
 import com.vesperin.text.utils.Jamas;
 import com.vesperin.text.utils.Strings;
+import com.vesperin.text.utils.Tree;
 
 import java.util.*;
 import java.util.function.Function;
@@ -188,8 +185,6 @@ public interface Grouping extends Executable {
   }
 
 
-
-
   /**
    * todo FINISH
    * @param projects
@@ -197,52 +192,18 @@ public interface Grouping extends Executable {
    */
   default <T> Groups ofProjects(List<Project<T>> projects){
 
-    final MutableGraph<Project<T>> graph = GraphBuilder.directed()
-      .allowsSelfLoops(false)
-      .build();
+    if(projects.isEmpty()) return Groups.emptyGroups();
 
-    final int threshold = 6;
+    final Tree<Partition<T>> clusterTree = Partitions.buildClusterTree(projects);
 
-    if(Objects.isNull(projects)) return Groups.emptyGroups();
-    if(projects.isEmpty())  return Groups.emptyGroups();
 
-    Project<T> max = Iterables.get(projects, 0);
-    for (Project<T> each : projects){
-      final Set<Word> s1 = max.wordSet();
-      final Set<Word> s2 = each.wordSet();
 
-      if(Math.max(Sets.intersection(s1, s2).size(), threshold) >= threshold){
-        graph.putEdge(max, each);
-      }
+    clusterTree.getPreOrderTraversal();
 
-    }
-
-    return Groups.emptyGroups();
 
 
 
-//    final MutableGraph<String> graph = GraphBuilder.directed()
-//      .allowsSelfLoops(false)
-//      .build();
-//
-//    final List<Group> groups = new ArrayList<>();
-//    for (int blocks = 1; blocks <= projects.size(); ++blocks) {
-//      final PartitionIterable<Project<T>> partitions = new PartitionIterable<>(
-//        projects, blocks
-//      );
-//
-//      final Group group = newGroup();
-//      for (List<List<Project<T>>> each : partitions) {
-//        // todo[Huascar] implement eval(each) >= overlapping factor
-//        // if eval(each) >= overlapping factor
-//        //    group.add(each)
-//        group.add(each);
-//      }
-//
-//      groups.add(group);
-//    }
-//
-//    return Groups.of(groups, new Index());
+    return Groups.emptyGroups();
   }
 
   /**

@@ -52,14 +52,19 @@ public class Partitions {
         for (Node<Partition<T>> each : compare){
 
           final Partition<T>  data      = each.getData();
-          final Set<Word>     sharedSet = Sets.intersection(current.wordSet(), data.words);
+          final Set<Word>     sharedSet = Sets.intersection(current.wordSet(), data.wordSet());
 
           if(!sharedSet.isEmpty()){ // connect projects via intersection
 
-            final Partition<T> target = Partition.newPartition("(" + data.label + " ∩ " + current.name() + ")");
-            target.addAll(data.projects);
-            target.add(current);
+            final Partition<T> target = Partition.newPartition("(" + data.label() + " ∩ " + current.name() + ")");
+            // copies the shared words to the new partition
             target.copiesAll(sharedSet);
+
+            final Set<Project<T>> newPros = Sets.newHashSet();
+            newPros.addAll(data.projectSet());
+            newPros.add(current);
+
+            target.addAllIff(newPros);
 
             final Node<Partition<T>> targetNode = Node.newNode(target);
             each.addChild(targetNode);

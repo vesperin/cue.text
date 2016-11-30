@@ -16,6 +16,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 
 /**
  * @author Huascar Sanchez
@@ -37,15 +38,24 @@ public class PartitionsTest {
       Codebase.randomCode("Query3")
     );
 
+    final Set<Source> code3 = Sets.newHashSet(
+      Codebase.randomCode("Query1"),
+      Codebase.quickSort("QuickSort3")
+    );
+
     final Corpus<Source> c1 = Corpus.ofSources();
     c1.addAll(code1);
 
     final Corpus<Source> c2 = Corpus.ofSources();
     c2.addAll(code2);
 
+    final Corpus<Source> c3 = Corpus.ofSources();
+    c3.addAll(code3);
+
     corpusList = Lists.newArrayList();
     corpusList.add(c1);
     corpusList.add(c2);
+    corpusList.add(c3);
 
     tokenizer = Tokenizers.tokenizeTypeDeclarationName();
   }
@@ -66,7 +76,8 @@ public class PartitionsTest {
     assertFalse(pt.isEmpty());
 
     for(Partition<Source> each : pt){
-      System.out.println(each + " " + each.words);
+      assertNotNull(each);
+      System.out.println(each + " " + each.wordSet());
     }
 
   }
