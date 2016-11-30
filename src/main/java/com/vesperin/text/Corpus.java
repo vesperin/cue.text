@@ -12,6 +12,10 @@ import java.util.Set;
  */
 public interface Corpus <T> extends Iterable <T> {
 
+  static <T> Corpus<T> ofGenericType(Set<T> storage){
+    return new GenericCorpus<>(storage);
+  }
+
   /**
    * Factory method that produces a corpus of source file elements.
    * @return a new Source Corpus.
@@ -122,6 +126,12 @@ public interface Corpus <T> extends Iterable <T> {
   class StringCorpus extends AbstractCorpus <String> {
     StringCorpus(){
       super();
+    }
+  }
+
+  class GenericCorpus <T> extends AbstractCorpus <T> {
+    GenericCorpus(Set<T> dataSet) {
+      super(dataSet);
     }
   }
 }

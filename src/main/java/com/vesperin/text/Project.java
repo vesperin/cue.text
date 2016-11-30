@@ -1,5 +1,6 @@
 package com.vesperin.text;
 
+import com.google.common.collect.Sets;
 import com.vesperin.text.Selection.Word;
 import com.vesperin.text.tokenizers.WordsTokenizer;
 
@@ -21,6 +22,12 @@ public class Project <T> {
       .stream().collect(Collectors.toSet());
   }
 
+  private Project(String name, Set<Word> words){
+    this.name   = name;
+    this.words  = words;
+    this.corpus = Corpus.ofGenericType(Sets.newHashSet());
+  }
+
   /**
    * Creates a new project.
    *
@@ -32,6 +39,27 @@ public class Project <T> {
    */
   public static <T> Project<T> createProject(String name, Corpus<T> corpus, WordsTokenizer tokenizer){
     return new Project<>(name, corpus, tokenizer);
+  }
+
+  /**
+   * Creates a new project.
+   *
+   * @param name the name of a project
+   * @param words  words extracted from a secondary corpus object
+   * @param <T> element type
+   * @return new project object
+   */
+  public static <T> Project<T> createProject(String name, Set<Word> words){
+    return new Project<>(name, words);
+  }
+
+  /**
+   * Appends another corpus object to the current one.
+   *
+   * @param other the secondary corpus object.
+   */
+  public void append(Corpus<T> other){
+    corpus().add(other);
   }
 
   /**
