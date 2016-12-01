@@ -54,6 +54,23 @@ public class Project <T> {
   }
 
   /**
+   * Extracts all shared words from a group of projects.
+   *
+   * @param group the group of projects.
+   * @return the set of words shared by all the projects in the
+   *    group object.
+   */
+  public static Set<Word> from(Grouping.Group group){
+    final Set<Word> words = Sets.newHashSet();
+    Grouping.Group.items(group, Project.class)
+      .stream()
+      .map(p -> p.words)
+      .forEach(words::addAll);
+
+    return words;
+  }
+
+  /**
    * Appends another corpus object to the current one.
    *
    * @param other the secondary corpus object.
