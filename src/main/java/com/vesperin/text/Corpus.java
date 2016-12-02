@@ -1,6 +1,7 @@
 package com.vesperin.text;
 
 import com.vesperin.base.Source;
+import com.vesperin.text.spi.BasicExecutionMonitor;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -56,6 +57,13 @@ public interface Corpus <T> extends Iterable <T> {
    */
   default void addAll(Collection<T> elements){
     elements.forEach(this::add);
+
+    if(BasicExecutionMonitor.get().isActive()){
+      BasicExecutionMonitor.get().warn(
+        String.format("Corpus#addAll: %d elements stored in corpus.", size())
+      );
+    }
+
   }
 
   /**

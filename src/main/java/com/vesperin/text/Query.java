@@ -4,6 +4,7 @@ import Jama.Matrix;
 import com.google.common.primitives.Doubles;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
+import com.vesperin.text.spi.BasicExecutionMonitor;
 import com.vesperin.text.utils.Jamas;
 
 import java.util.Collections;
@@ -33,7 +34,21 @@ public interface Query {
     Objects.requireNonNull(index);
     Objects.requireNonNull(words);
 
-    return createQuery().documentSearch(words, index);
+    final Result result = createQuery().documentSearch(words, index);
+
+    if(BasicExecutionMonitor.get().isActive()){
+
+      BasicExecutionMonitor.get().info(
+        String.format(
+          "Query#documents: %d documents sharing these %s words.",
+          result.documents.size(),
+          words
+        )
+      );
+
+    }
+
+    return result;
   }
 
   /**
@@ -47,7 +62,23 @@ public interface Query {
   static Result words(List<Document> docs, Index index){
     Objects.requireNonNull(index);
     Objects.requireNonNull(docs);
-    return createQuery().wordSearch(docs, index);
+
+    final Result result = createQuery().wordSearch(docs, index);
+
+    if(BasicExecutionMonitor.get().isActive()){
+
+      BasicExecutionMonitor.get().info(
+        String.format(
+          "Query#words: %d words found in these %s documents.",
+          result.documents.size(),
+          docs
+        )
+      );
+
+    }
+
+
+    return result;
   }
 
   /**
@@ -86,8 +117,32 @@ public interface Query {
     final List<Word> keywords       = Objects.requireNonNull(words);
     final Index      validIndex     = Objects.requireNonNull(index);
     final Matrix     queryMatrix    = createQueryVector(keywords, validIndex.wordList());
+    final Matrix     tfidfMatrix    = Jamas.tfidfMatrix(index.wordDocFrequency());
 
-    return documentSearch(queryMatrix, index.docSet(), Jamas.tfidfMatrix(index.wordDocFrequency()));
+    if(BasicExecutionMonitor.get().isActive()){
+
+      BasicExecutionMonitor.get().info(
+        String.format("Query#documentSearch: Printing query vector for %s.", keywords)
+      );
+
+      Jamas.printJamaMatrix(
+        "Query vector (words)",
+        queryMatrix,
+        keywords
+      );
+
+      System.out.println();
+
+      Jamas.printJamaMatrix(
+        "Tf-idf matrix (words)",
+        tfidfMatrix,
+        validIndex.wordList()
+      );
+
+    }
+
+
+    return documentSearch(queryMatrix, index.docSet(), tfidfMatrix);
   }
 
   /**
@@ -103,8 +158,30 @@ public interface Query {
     final Index           validIndex     = Objects.requireNonNull(index);
     final List<Document>  docList        = validIndex.docSet().stream().collect(Collectors.toList());
     final Matrix          queryMatrix    = createQueryVector(keydocs, docList);
+    final Matrix          tfidfMatrix    = Jamas.tfidfMatrix(index.wordDocFrequency().transpose());
 
-    return wordSearch(queryMatrix, index.wordList(), Jamas.tfidfMatrix(index.wordDocFrequency().transpose()));
+    if(BasicExecutionMonitor.get().isActive()){
+
+      BasicExecutionMonitor.get().info(
+        String.format("Query#wordSearch: Printing query vector for %s.", keydocs)
+      );
+
+      Jamas.printJamaMatrix(
+        "Query vector (words)",
+        queryMatrix,
+        keydocs
+      );
+
+      System.out.println();
+
+      Jamas.printJamaMatrix(
+        "Tf-idf matrix (words)",
+        tfidfMatrix.transpose(),
+        validIndex.wordList()
+      );
+    }
+
+    return wordSearch(queryMatrix, index.wordList(), tfidfMatrix);
   }
 
   /**

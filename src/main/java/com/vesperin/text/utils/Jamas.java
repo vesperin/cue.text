@@ -2,6 +2,7 @@ package com.vesperin.text.utils;
 
 import Jama.Matrix;
 import Jama.SingularValueDecomposition;
+import com.google.common.collect.Iterables;
 import com.vesperin.text.Selection.Word;
 
 import java.io.PrintWriter;
@@ -84,6 +85,44 @@ public class Jamas {
 
   public static void printRawFreqMatrix(Matrix matrix, List<String> documentNames, List<Word> words){
     printMatrix("Raw Frequency Matrix", matrix, documentNames, words, new PrintWriter(System.out));
+  }
+
+
+  public static <T> void printJamaMatrix(String legend, Matrix matrix, List<T> items){
+    System.out.printf("=== %s ===%n", legend);
+
+    final double[][] m = matrix.getArray();
+
+    for (int i = 0; i < m[0].length; i++) {
+      if(i == 0){
+        System.out.printf("%20s", "D" + i);
+      } else {
+        System.out.printf("%8s", "D" + i);
+      }
+    }
+
+    System.out.println();
+    for (int i = 0; i < m.length; i++) {
+      if(!containsItemAt(items, i)) continue;
+      System.out.printf("%15s", items.get(i));
+      for (int j = 0; j < m[0].length; j++) {
+        double val = m[i][j];
+        val = Double.isNaN(val) ? 0.0D : val;
+        System.out.printf("%8.4f", val);
+      }
+
+      System.out.println();
+    }
+
+    System.out.println();
+    System.out.println();
+
+  }
+
+  private static <T> boolean containsItemAt(List<T> items, int idx){
+    try { items.get(idx); return true; } catch (Exception e) {
+      return false;
+    }
   }
 
 

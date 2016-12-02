@@ -3,6 +3,8 @@ package com.vesperin.text;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.vesperin.text.Selection.Word;
+import com.vesperin.text.spi.BasicExecutionMonitor;
+import com.vesperin.text.spi.ExecutionMonitor;
 import com.vesperin.text.utils.Node;
 import com.vesperin.text.utils.Tree;
 
@@ -17,6 +19,8 @@ import java.util.stream.Collectors;
  * @author Huascar Sanchez
  */
 public class Partitions {
+  private static ExecutionMonitor LOGGER = BasicExecutionMonitor.get();
+
   private Partitions(){}
 
   /**
@@ -77,6 +81,12 @@ public class Partitions {
       }
     }
 
+
+    if(LOGGER.isActive()){
+      LOGGER.info(String.format("Partitions#buildClusterTree: %d projects were processed", projectList.size()));
+      LOGGER.info(String.format("Partitions#buildClusterTree: %d cluster tree's height", clusterTree.getHeight()));
+      LOGGER.info(String.format("Partitions#buildClusterTree: %d nodes (clusters) were discovered", clusterTree.getPostOrderTraversal().size()));
+    }
 
     return clusterTree;
   }

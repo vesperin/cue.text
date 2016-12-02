@@ -9,6 +9,7 @@ import com.vesperin.text.groups.Magnet;
 import com.vesperin.text.groups.kmeans.DocumentKMeans;
 import com.vesperin.text.groups.kmeans.WordKMeans;
 import com.vesperin.text.groups.kruskal.UnionFindMagnet;
+import com.vesperin.text.spi.BasicExecutionMonitor;
 import com.vesperin.text.utils.Jamas;
 import com.vesperin.text.utils.Node;
 import com.vesperin.text.utils.Strings;
@@ -224,6 +225,17 @@ public interface Grouping extends Executable {
       }
     }
 
+    if(BasicExecutionMonitor.get().isActive()){
+      BasicExecutionMonitor.get().info(
+        String.format(
+          "Grouping#ofProjects: %d clusters were formed from %s projects",
+          groups.size(),
+          projects.toString()
+        )
+      );
+    }
+
+
     return Groups.of(groups.stream().collect(toList()));
   }
 
@@ -237,7 +249,19 @@ public interface Grouping extends Executable {
     if(Objects.isNull(words) || words.isEmpty())
       return Groups.emptyGroups();
 
-    return groups(words, new WordKMeans());
+    final Groups groups = groups(words, new WordKMeans());
+
+    if(BasicExecutionMonitor.get().isActive()){
+      BasicExecutionMonitor.get().info(
+        String.format(
+          "Grouping#ofWords: %d words were partitioned into %d clusters; using the Kmeans algorithm.",
+          words.size(),
+          groups.size()
+        )
+      );
+    }
+
+    return groups;
   }
 
   /**
@@ -251,7 +275,24 @@ public interface Grouping extends Executable {
     if(Objects.isNull(words) || words.isEmpty())
       return Groups.emptyGroups();
 
-    return groups(words, new DocumentKMeans());
+
+    final Groups groups = groups(words, new DocumentKMeans());
+
+    if(BasicExecutionMonitor.get().isActive()){
+
+      final Index index = new Index();
+      index.index(words);
+
+      BasicExecutionMonitor.get().info(
+        String.format(
+          "Grouping#ofDocs: %d documents were partitioned into %d clusters; using the Kmeans algorithm.",
+          index.docSet().size(),
+          groups.size()
+        )
+      );
+    }
+
+    return groups;
   }
 
   /**
@@ -262,7 +303,21 @@ public interface Grouping extends Executable {
    */
   default Groups reGroups(Group group){
     final List<Document>  docs  = Group.items(group, Document.class);
-    return groups(docs, new UnionFindMagnet());
+    final Groups groups = groups(docs, new UnionFindMagnet());
+
+
+    if(BasicExecutionMonitor.get().isActive()){
+
+      BasicExecutionMonitor.get().info(
+        String.format(
+          "Grouping#reGroups: %d documents were partitioned into %d clusters; using the Kruskal algorithm.",
+          docs.size(),
+          groups.size()
+        )
+      );
+    }
+
+    return groups;
 
   }
 

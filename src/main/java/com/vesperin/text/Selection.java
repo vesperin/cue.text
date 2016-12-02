@@ -12,6 +12,7 @@ import com.vesperin.base.locators.UnitLocation;
 import com.vesperin.text.nouns.Noun;
 import com.vesperin.text.spelling.SpellCorrector;
 import com.vesperin.text.spelling.StopWords;
+import com.vesperin.text.spi.BasicExecutionMonitor;
 import com.vesperin.text.tokenizers.WordsInASTNodeTokenizer;
 import com.vesperin.text.tokenizers.WordsTokenizer;
 import com.vesperin.text.utils.Jamas;
@@ -98,7 +99,15 @@ public interface Selection <T> extends Executable {
     final Set<String> typical  = typicalList.stream().map(Word::element).collect(toSet());
 
     final List<String> representativeOnes = Strings.representativenessRank(typical, universe);
-    return representativeOnes.stream().map(mapping::get).collect(Collectors.toList());
+    final List<Word> representative = representativeOnes.stream().map(mapping::get).collect(Collectors.toList());
+
+    if(BasicExecutionMonitor.get().isActive()){
+      BasicExecutionMonitor.get().info(String.format(
+        "Selection#representativeWords: Top %d representative words selected ", representative.size()
+      ));
+    }
+
+    return representative;
   }
 
   static Map<String, Word> mapWords(List<Word> words){
@@ -145,7 +154,15 @@ public interface Selection <T> extends Executable {
     final Map<List<Word>, List<Word>> mapping = frequentToTypicalMapping(fromCorpus, tokenizer);
     if(mapping.isEmpty()) return Collections.emptyList();
 
-    return Iterables.get(mapping.values(), 0);
+    final List<Word> words = Iterables.get(mapping.values(), 0);
+
+    if(BasicExecutionMonitor.get().isActive()){
+      BasicExecutionMonitor.get().info(String.format(
+        "Selection#typicalWords: Top %d typical words selected ", words.size()
+      ));
+    }
+
+    return words;
   }
 
   /**
@@ -157,7 +174,15 @@ public interface Selection <T> extends Executable {
    * @return a new list of frequent words
    */
   static <T> List<Word> frequentWords(Corpus<T> fromCorpus, WordsTokenizer tokenizer){
-    return topKFrequentWords(Integer.MAX_VALUE, fromCorpus, tokenizer);
+    List<Word> words = topKFrequentWords(Integer.MAX_VALUE, fromCorpus, tokenizer);
+
+    if(BasicExecutionMonitor.get().isActive()){
+      BasicExecutionMonitor.get().info(String.format(
+        "Selection#frequentWords: Top %d words selected ", words.size()
+      ));
+    }
+
+    return words;
   }
 
 
@@ -194,20 +219,28 @@ public interface Selection <T> extends Executable {
   default List<Word> from(T element, WordsTokenizer tokenizer) {
     final boolean isSource = element instanceof Source;
 
+    List<Word> result;
     if(isSource && !tokenizer.isLightweightTokenizer()){
       final Source        src     = (Source) element;
       final Context       context = newContext(src);
       final UnitLocation  scope   = buildScope(context);
 
       if(scope == null) return Collections.emptyList();
-      return from(scope, tokenizer);
+      result = from(scope, tokenizer);
     } else {
       assert element instanceof String;
 
       final String text = (String) element;
-      return from(text, tokenizer);
+      result = from(text, tokenizer);
     }
 
+    if(BasicExecutionMonitor.get().isActive()){
+      BasicExecutionMonitor.get().info(String.format(
+        "Selection#from: %d words were extracted from %s.", result.size(), element
+      ));
+    }
+
+    return result;
   }
 
   /**
@@ -282,7 +315,13 @@ public interface Selection <T> extends Executable {
     final List<Word> firstPass  = from(corpus, tokenizer);
     final List<Word> secondPass = cleans(tokenizer.stopWords(), firstPass);
 
-    return from(secondPass, new WordByFrequency(k));
+    final List<Word> words = from(secondPass, new WordByFrequency(k));
+    if(BasicExecutionMonitor.get().isActive()){
+      BasicExecutionMonitor.get().info(
+        String.format("Selection#topKWords: top %d words were extracted using using term frequency as a score.", words.size())
+      );
+    }
+    return words;
   }
 
   /**
@@ -296,9 +335,28 @@ public interface Selection <T> extends Executable {
   default List<Word> topKWords(int k, Corpus<T> code, WordsTokenizer tokenizer){
     final List<Word> words = from(deduplicateWordList(code, tokenizer), new WordByCompositeWeight());
     if(words.isEmpty()) return words;
+
+
     final int topK = Math.min(Math.max(0, k), 150);
 
-    return slice(topK, words);
+    if(BasicExecutionMonitor.get().isActive()){
+      if(k < 0) {
+        BasicExecutionMonitor.get().warn(
+          String.format("Selection#topKWords: k = %d is an invalid k (%d will be used instead).", k, 150)
+        );
+      }
+    }
+
+
+    final List<Word> slicedWords  = slice(topK, words);
+
+    if(BasicExecutionMonitor.get().isActive()){
+      BasicExecutionMonitor.get().info(
+        String.format("Selection#topKWords: top %d words were extracted using using tf-idf statistic as a score.", slicedWords.size())
+      );
+    }
+
+    return slicedWords;
   }
 
   static List<Word> slice(int k, List<Word> words){
@@ -820,6 +878,16 @@ public interface Selection <T> extends Executable {
         final double s = Jamas.rowSum(tfidf, i);
         scores.put(words.get(i), s);
       }
+
+
+
+
+      if(BasicExecutionMonitor.get().isActive()){
+        BasicExecutionMonitor.get().info(
+          String.format("WordByCompositeWeight#weightWords: %s tf-idf scores. ", scores)
+        );
+      }
+
       return scores;
     }
   }
