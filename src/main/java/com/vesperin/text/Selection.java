@@ -154,9 +154,17 @@ public interface Selection <T> extends Executable {
     final Map<List<Word>, List<Word>> mapping = frequentToTypicalMapping(fromCorpus, tokenizer);
     if(mapping.isEmpty()) return Collections.emptyList();
 
+    final List<Word> freQ  = Iterables.get(mapping.keySet(), 0);
     final List<Word> words = Iterables.get(mapping.values(), 0);
 
-    if(BasicExecutionMonitor.get().isActive()){
+    if(freQ.size() == words.size()){
+      final int k = Samples.chooseK(words);
+      final List<Word> ws = words.stream().limit(k).collect(toList());
+
+      BasicExecutionMonitor.get().info(String.format(
+        "Selection#typicalWords: Top %d typical words selected ", ws.size()
+      ));
+    } else {
       BasicExecutionMonitor.get().info(String.format(
         "Selection#typicalWords: Top %d typical words selected ", words.size()
       ));
