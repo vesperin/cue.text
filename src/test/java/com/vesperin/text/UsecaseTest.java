@@ -43,7 +43,7 @@ public class UsecaseTest {
 
     System.out.println("moving files to corpus: " + stopwatch);
 
-    final Map<List<Word>, List<Word>> mapping = Selection.frequentToTypicalMapping(corpus, Tokenizers.tokenizeTypeDeclarationName(stopWords));
+    final Map<List<Word>, List<Word>> mapping = Introspector.buildWordsMap(corpus, Tokenizers.tokenizeTypeDeclarationName(stopWords));
 
     words   = Iterables.get(mapping.keySet(), 0).stream().limit(50).collect(Collectors.toList());
 

@@ -38,7 +38,7 @@ public class IntrospectorTest {
     Corpus<Source> corpus = Corpus.ofSources();
     corpus.addAll(sources);
 
-    final List<Word> typicalOnes = Introspector.typicalWords(
+    final List<Word> typicalOnes = Introspector.typicalityQuery(2,
       corpus, Tokenizers.tokenizeTypeDeclarationName(StopWords.all())
     );
 
@@ -65,7 +65,7 @@ public class IntrospectorTest {
     Corpus<Source> corpus = Corpus.ofSources();
     corpus.addAll(sources);
 
-    final Map<List<Word>, List<Word>> relevantMapping = Introspector.generateRelevantMapping(
+    final Map<List<Word>, List<Word>> relevantMapping = Introspector.buildWordsMap(
       corpus, Tokenizers.tokenizeTypeDeclarationName(StopWords.all())
     );
 

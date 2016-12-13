@@ -18,7 +18,7 @@ public class Project <T> {
   private Project(String name, Corpus<T> corpus, WordsTokenizer tokenizer){
     this.name   = name;
     this.corpus = corpus;
-    this.words  = Selection.typicalWords(corpus, tokenizer)
+    this.words  = Introspector.typicalityRank(corpus, tokenizer)
       .stream().collect(Collectors.toSet());
   }
 

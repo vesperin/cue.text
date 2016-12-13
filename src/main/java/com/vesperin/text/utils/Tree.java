@@ -218,9 +218,20 @@ public class Tree<T> {
    * @return List of paths.
    */
   public List<List<Node<T>>> getPathsFromRootToAnyLeaf() {
+    return getPathsFromNodeToLeaf(root);
+  }
+
+
+  /**
+   *
+   * Get a list of all the paths (which is again a list of nodes along a path) from the root node to every leaf.
+   *
+   * @return List of paths.
+   */
+  public List<List<Node<T>>> getPathsFromNodeToLeaf(Node<T> node) {
     List<List<Node<T>>> paths = new ArrayList<>();
     List<Node<T>> currentPath = new ArrayList<>();
-    getPath(root, currentPath, paths);
+    getPath(node, currentPath, paths);
 
     return paths;
   }

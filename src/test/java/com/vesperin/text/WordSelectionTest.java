@@ -158,7 +158,7 @@ public class WordSelectionTest {
     final Set<Word> intersecting = Sets.intersection(wordList.stream().collect(Collectors.toSet()), filtered.stream().collect(Collectors.toSet()));
     System.out.println(intersecting);
 
-    final List<Word> words = Selection.frequentWords(corpus, Tokenizers.tokenizeString(StopWords.all()));
+    final List<Word> words = Introspector.frequentWords(corpus, Tokenizers.tokenizeString(StopWords.all()));
     System.out.println("Auto filtered words");
     System.out.println(words);
     assertThat(words.isEmpty(), is(false));
@@ -206,12 +206,12 @@ public class WordSelectionTest {
     final Corpus<Source> corpus = Corpus.ofSources();
     corpus.addAll(code);
 
-    final List<Word> words = Selection.frequentWords(
+    final List<Word> words = Introspector.frequentWords(
       corpus,
       Tokenizers.tokenizeTypeDeclarationName()
     );
 
-    final List<Word> twords = Selection.typicalWords(corpus, Tokenizers.tokenizeTypeDeclarationName());
+    final List<Word> twords = Introspector.typicalityQuery(100, corpus, Tokenizers.tokenizeTypeDeclarationName());
     assertThat(twords.isEmpty(), is(false));
 
     // empty because all words are stop words
@@ -278,8 +278,8 @@ public class WordSelectionTest {
     final Corpus<Source> corpus = Corpus.ofSources();
     corpus.addAll(code);
 
-    final List<Word> words  = Selection.typicalWords(corpus, Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(), StopWords.of(StopWords.JAVA, StopWords.ENGLISH)));
-    final List<Word> words2 = Selection.representativeWords(corpus, Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(), StopWords.of(StopWords.JAVA, StopWords.ENGLISH)));
+    final List<Word> words  = Introspector.typicalityQuery(200, corpus, Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(), StopWords.of(StopWords.JAVA, StopWords.ENGLISH)));
+    final List<Word> words2 = Introspector.representativeWords(corpus, Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(), StopWords.of(StopWords.JAVA, StopWords.ENGLISH)));
 
     System.out.println(words);
     System.out.println(words2);

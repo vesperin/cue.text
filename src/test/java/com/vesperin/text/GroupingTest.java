@@ -1,14 +1,12 @@
 package com.vesperin.text;
 
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.vesperin.base.Source;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
 import com.vesperin.text.spelling.StopWords;
 import com.vesperin.text.tokenizers.Tokenizers;
-import com.vesperin.text.tokenizers.WordsTokenizer;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -18,8 +16,6 @@ import java.util.List;
 import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -160,54 +156,6 @@ public class GroupingTest {
 
   }
 
-  @Test public void testProjectClustering() throws Exception {
-    final Set<Source> code1 = Sets.newHashSet(
-      Codebase.quickSort("QuickSort1"),
-      Codebase.quickSort("QuickSort2"),
-      Codebase.quickSort("QuickSort3")
-    );
-
-    final Set<Source> code2 = Sets.newHashSet(
-      Codebase.randomCode("Query1"),
-      Codebase.randomCode("Query2"),
-      Codebase.randomCode("Query3")
-    );
-
-    final Set<Source> code3 = Sets.newHashSet(
-      Codebase.randomCode("Query1"),
-      Codebase.quickSort("QuickSort3")
-    );
-
-    final Corpus<Source> c1 = Corpus.ofSources();
-    c1.addAll(code1);
-
-    final Corpus<Source> c2 = Corpus.ofSources();
-    c2.addAll(code2);
-
-    final Corpus<Source> c3 = Corpus.ofSources();
-    c3.addAll(code3);
-
-    final List<Corpus<Source>> corpusList = Lists.newArrayList();
-    corpusList.add(c1);
-    corpusList.add(c2);
-    corpusList.add(c3);
-
-    final WordsTokenizer tokenizer = Tokenizers.tokenizeTypeDeclarationName();
-
-    final List<Project<Source>> P = Lists.newArrayList();
-    int row = 0;
-
-    for(Corpus<Source> each : corpusList){
-      final String name = ("p" + row++);
-      P.add(Project.createProject(name, each, tokenizer));
-    }
-
-    final Grouping.Groups groups = Grouping.groupProjects(P);
-
-    assertNotNull(groups);
-    assertFalse(groups.isEmpty());
-
-  }
 
   @AfterClass public static void tearDown(){
     words.clear();

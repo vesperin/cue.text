@@ -144,7 +144,7 @@ public class RecommendTests {
 
   @Test public void testBasicRecommend() throws Exception {
 
-    final List<Word> words = Selection.typicalWords(corpus, tokenizer);
+    final List<Word> words = Introspector.typicalityQuery(100, corpus, tokenizer);
     assertThat(words.isEmpty(), is(false));
 
 
@@ -165,7 +165,7 @@ public class RecommendTests {
     corpus.add("selectedArea");
     corpus.add("errorLocation");
 
-    final Map<List<Word>, List<Word>> maps = Introspector.generateRelevantMapping(
+    final Map<List<Word>, List<Word>> maps = Introspector.buildWordsMap(
       corpus, Tokenizers.tokenizeString()
     );
 
@@ -194,7 +194,7 @@ public class RecommendTests {
 
     final WordsTokenizer localTokenizer = Tokenizers.tokenizeString();
 
-    final Map<List<Word>, List<Word>> maps = Introspector.generateRelevantMapping(
+    final Map<List<Word>, List<Word>> maps = Introspector.buildWordsMap(
       localCorpus, localTokenizer
     );
 

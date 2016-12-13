@@ -1,7 +1,6 @@
 package com.vesperin.text;
 
 import Jama.Matrix;
-import com.google.common.collect.Sets;
 import com.google.common.primitives.Doubles;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
@@ -11,9 +10,7 @@ import com.vesperin.text.groups.kmeans.WordKMeans;
 import com.vesperin.text.groups.kruskal.UnionFindMagnet;
 import com.vesperin.text.spi.BasicExecutionMonitor;
 import com.vesperin.text.utils.Jamas;
-import com.vesperin.text.utils.Node;
 import com.vesperin.text.utils.Strings;
-import com.vesperin.text.utils.Tree;
 
 import java.util.*;
 import java.util.function.Function;
@@ -174,69 +171,6 @@ public interface Grouping extends Executable {
     documents.forEach(group::add);
 
     return regroups(group);
-  }
-
-  /**
-   * Groups a list of projects by continuous partitioning of this list.
-   *
-   * @param projects list of projects to group
-   * @param <T> type of elements in projects
-   * @return a new Groups object.
-   */
-  static <T> Groups groupProjects(List<Project<T>> projects){
-    return new GroupingImpl().ofProjects(projects);
-  }
-
-
-  /**
-   * Groups a list of projects by continuous partitioning this list.
-   * Grouping is done on the basis of set intersection operations.
-   *
-   * @param projects list of projects to partition
-   * @return a new Groups object.
-   */
-  default <T> Groups ofProjects(List<Project<T>> projects){
-
-    if(projects.isEmpty()) return Groups.emptyGroups();
-
-    final Tree<Partition<T>> clusterTree = Partitions.buildClusterTree(projects);
-
-    final Deque<Node<Partition<T>>> Q = new ArrayDeque<>();
-    final Set<Node<Partition<T>>>   V = Sets.newIdentityHashSet();
-
-    final Set<Group> groups = Sets.newHashSet();
-
-    Q.add(clusterTree.getRoot());
-
-    while(!Q.isEmpty()){
-      final Node<Partition<T>> w = Q.remove();
-
-      // add group
-      final Group group = Grouping.newGroup();
-      w.getData().projectSet().forEach(group::add);
-
-      groups.add(group);
-
-      if(!V.contains(w)){
-        V.add(w);
-
-        w.getChildren().forEach(Q::add);
-
-      }
-    }
-
-    if(BasicExecutionMonitor.get().isActive()){
-      BasicExecutionMonitor.get().info(
-        String.format(
-          "Grouping#ofProjects: %d clusters were formed from %s projects",
-          groups.size(),
-          projects.toString()
-        )
-      );
-    }
-
-
-    return Groups.of(groups.stream().collect(toList()));
   }
 
   /**

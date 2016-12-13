@@ -1,7 +1,6 @@
 package com.vesperin.text;
 
 import Jama.Matrix;
-import com.google.common.collect.Iterables;
 import com.google.common.primitives.Doubles;
 import com.vesperin.base.Context;
 import com.vesperin.base.EclipseJavaParser;
@@ -16,7 +15,6 @@ import com.vesperin.text.spi.BasicExecutionMonitor;
 import com.vesperin.text.tokenizers.WordsInASTNodeTokenizer;
 import com.vesperin.text.tokenizers.WordsTokenizer;
 import com.vesperin.text.utils.Jamas;
-import com.vesperin.text.utils.Samples;
 import com.vesperin.text.utils.Strings;
 import org.eclipse.jdt.core.dom.ASTNode;
 
@@ -27,13 +25,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.vesperin.text.spelling.Dictionary.isDefined;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
-import static java.util.stream.Collectors.toSet;
 
 /**
  * Selection mixin
@@ -42,162 +37,9 @@ import static java.util.stream.Collectors.toSet;
  */
 public interface Selection <T> extends Executable {
   /**
-   * Selects the most representative words in a given corpus.
-   *
-   * @param fromCorpus corpus object.
-   * @param tokenizer strategy for collecting words in the given corpus
-   * @param <T> type elements contained in the corpus.
-   * @return a new list of typical words ordered by how representative they are to
-   *    the most relevant words in a corpus object. if the size of frequent words is
-   *    the same as the size of typical words, then the returned list will be empty.
-   */
-  static <T> List<Word> representativeWords(Corpus<T> fromCorpus, WordsTokenizer tokenizer){
-
-    final Map<List<Word>, List<Word>> frequentToTypical = frequentToTypicalMapping(fromCorpus, tokenizer);
-    return representativeWords(frequentToTypical);
-  }
-
-
-  /**
-   * Finds the most representative words of a corpus object.
-   * @param mapping mapping from a list of frequent words to a list of typical words
-   * @return list of representative words
-   */
-  static List<Word> representativeWords(Map<List<Word>, List<Word>> mapping){
-    if(mapping.isEmpty()) return Collections.emptyList();
-
-    final List<Word> frequentOnes = Iterables.get(mapping.keySet(), 0);
-    final List<Word> typicalOnes  = Iterables.get(mapping.values(), 0);
-
-    final int sizeF = frequentOnes.size();
-    final int sizeT = typicalOnes.size();
-
-    if(sizeF == sizeT){
-      final int k = Samples.chooseK(typicalOnes);
-      final List<Word> reducedTypicalityOnes = typicalOnes.stream().limit(k).collect(Collectors.toList());
-      return Selection.representativeWords(reducedTypicalityOnes, frequentOnes, Selection.mapWords(reducedTypicalityOnes));
-    } else if (sizeF > sizeT) {
-      return Selection.representativeWords(typicalOnes, frequentOnes, Selection.mapWords(typicalOnes));
-    } else {
-      throw new IllegalStateException("Frequent set is greater than typical set!");
-    }
-  }
-
-  /**
-   * Selects the most representative words in a given corpus.
-   *
-   * @param typicalList list of typical words
-   * @param universeList list of relevant words
-   * @param mapping mapping between frequent words and typical words
-   * @return a new list of typical words ordered by how representative they are to
-   *    the most relevant words in a corpus object. if the size of frequent words is
-   *    the same as the size of typical words, then the returned list will be empty.
-   */
-  static List<Word> representativeWords(List<Word> typicalList, List<Word> universeList, Map<String, Word> mapping){
-
-    final Set<String> universe = universeList.stream().map(Word::element).collect(toSet());
-    final Set<String> typical  = typicalList.stream().map(Word::element).collect(toSet());
-
-    final List<String> representativeOnes = Strings.representativenessRank(typical, universe);
-    final List<Word> representative = representativeOnes.stream().map(mapping::get).collect(Collectors.toList());
-
-    if(BasicExecutionMonitor.get().isActive()){
-      BasicExecutionMonitor.get().info(String.format(
-        "Selection#representativeWords: Top %d representative words selected ", representative.size()
-      ));
-    }
-
-    return representative;
-  }
-
-  static Map<String, Word> mapWords(List<Word> words){
-    return words.stream().collect(toMap(Word::element, Function.identity()));
-  }
-
-  /**
-   * Generates a mapping between frequent words and typical words.
-   *
-   * @param fromCorpus corpus object.
-   * @param tokenizer strategy for collecting words in the given corpus
-   * @param <T> type elements contained in the corpus.
-   * @return a mapping from frequent words to typical words.
-   */
-  static <T> Map<List<Word>, List<Word>> frequentToTypicalMapping(Corpus<T> fromCorpus, WordsTokenizer tokenizer){
-    final List<Word> words = frequentWords(fromCorpus, tokenizer);
-
-    final Map<String, Word> mapping = new HashMap<>();
-
-    for(Word each : words){
-      mapping.put(each.element(), each);
-    }
-
-    final List<String> entryList = mapping.keySet().stream().collect(toList());
-
-    final List<String> typicals = Strings.typicalityRank(entryList);
-
-    final List<Word> typicalWords = typicals.stream()
-      .map(mapping::get)
-      .collect(Collectors.toList());
-
-    return Collections.singletonMap(words, typicalWords);
-  }
-
-  /**
-   * Selects the most typical words in a given corpus.
-   *
-   * @param fromCorpus corpus object.
-   * @param tokenizer strategy for collecting words in the given corpus
-   * @param <T> type elements contained in the corpus.
-   * @return a mapping from frequent words to typical words.
-   */
-  static <T> List<Word> typicalWords(Corpus<T> fromCorpus, WordsTokenizer tokenizer){
-    final Map<List<Word>, List<Word>> mapping = frequentToTypicalMapping(fromCorpus, tokenizer);
-    if(mapping.isEmpty()) return Collections.emptyList();
-
-    final List<Word> freQ  = Iterables.get(mapping.keySet(), 0);
-    final List<Word> words = Iterables.get(mapping.values(), 0);
-
-    if(freQ.size() == words.size()){
-      final int k = Samples.chooseK(words);
-      final List<Word> ws = words.stream().limit(k).collect(toList());
-
-      BasicExecutionMonitor.get().info(String.format(
-        "Selection#typicalWords: Top %d typical words selected ", ws.size()
-      ));
-    } else {
-      BasicExecutionMonitor.get().info(String.format(
-        "Selection#typicalWords: Top %d typical words selected ", words.size()
-      ));
-    }
-
-    return words;
-  }
-
-  /**
    * Selects the most relevant words in a corpus.
    *
-   * @param fromCorpus corpus object
-   * @param tokenizer strategy for collecting words in the given corpus
-   * @param <T> type elements contained in the corpus.
-   * @return a new list of frequent words
-   */
-  static <T> List<Word> frequentWords(Corpus<T> fromCorpus, WordsTokenizer tokenizer){
-    List<Word> words = topKFrequentWords(Integer.MAX_VALUE, fromCorpus, tokenizer);
-
-    if(BasicExecutionMonitor.get().isActive()){
-      BasicExecutionMonitor.get().info(String.format(
-        "Selection#frequentWords: Top %d words selected ", words.size()
-      ));
-    }
-
-    return words;
-  }
-
-
-  /**
-   * Selects the most relevant words in a corpus.
-   *
-   * @param k limit the returned list to this number (capped to 10)
+   * @param k limit the returned list to this number
    * @param fromCorpus corpus
    * @param <T> type elements contained in the corpus.
    * @return a new list of frequent words
@@ -344,25 +186,18 @@ public interface Selection <T> extends Executable {
     final List<Word> words = from(deduplicateWordList(code, tokenizer), new WordByCompositeWeight());
     if(words.isEmpty()) return words;
 
+    BasicExecutionMonitor.get().warn(
+      String.format("Selection#topKWords: %d total words collected.", words.size())
+    );
 
-    final int topK = Math.min(Math.max(0, k), 150);
 
-    if(BasicExecutionMonitor.get().isActive()){
-      if(k < 0) {
-        BasicExecutionMonitor.get().warn(
-          String.format("Selection#topKWords: k = %d is an invalid k (%d will be used instead).", k, 150)
-        );
-      }
-    }
-
+    final int topK = Math.min(Math.max(0, k), words.size());
 
     final List<Word> slicedWords  = slice(topK, words);
 
-    if(BasicExecutionMonitor.get().isActive()){
-      BasicExecutionMonitor.get().info(
-        String.format("Selection#topKWords: top %d words were extracted using using tf-idf statistic as a score.", slicedWords.size())
-      );
-    }
+    BasicExecutionMonitor.get().info(
+      String.format("Selection#topKWords: Capped %d words to %d words.", words.size(), topK)
+    );
 
     return slicedWords;
   }

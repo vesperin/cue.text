@@ -12,6 +12,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -58,9 +59,10 @@ public class Partitions {
           final Partition<T>  data      = each.getData();
           final Set<Word>     sharedSet = Sets.intersection(current.wordSet(), data.wordSet());
 
-          if(!sharedSet.isEmpty()){ // connect projects via intersection
+          int overlapThreshold = 5;
+          if(!sharedSet.isEmpty() && sharedSet.size() > overlapThreshold){ // connect projects via intersection
 
-            final Partition<T> target = Partition.newPartition("(" + data.label() + " ∩ " + current.name() + ")");
+            final Partition<T> target = Partition.newPartition();//("(" + data.label() + " ∩ " + current.name() + ")");
             // copies the shared words to the new partition
             target.copiesAll(sharedSet);
 
@@ -68,7 +70,9 @@ public class Partitions {
             newPros.addAll(data.projectSet());
             newPros.add(current);
 
-            target.addAllIff(newPros);
+            target.addAllIff(newPros, sharedSet);
+
+            if(Objects.equals(each.getData(), target)) continue;
 
             final Node<Partition<T>> targetNode = Node.newNode(target);
             each.addChild(targetNode);
@@ -88,6 +92,8 @@ public class Partitions {
       LOGGER.info(String.format("Partitions#buildClusterTree: %d nodes (clusters) were discovered", clusterTree.getPostOrderTraversal().size()));
     }
 
+    LOGGER.info(String.format("Height of tree: %d ", clusterTree.getHeight()));
+
     return clusterTree;
   }
 
@@ -95,7 +101,7 @@ public class Partitions {
     final Deque<Project<T>>   projects    = new ArrayDeque<>();
 
     // Initialize root of cluster tree (union of all words in these projects)
-    final StringBuilder         name      = new StringBuilder(projectList.size() * 1000);
+//    final StringBuilder         name      = new StringBuilder(projectList.size() * 1000);
     final Iterator<Project<T>>  iterator  = projectList.iterator();
 
     Set<Word>    master  = Sets.newHashSet();
@@ -103,16 +109,16 @@ public class Partitions {
     while(iterator.hasNext()){
       final Project<T> each = iterator.next();
 
-      name.append(each.name());
-      if(iterator.hasNext()){
-        name.append(" ∪ ");
-      }
+//      name.append(each.name());
+//      if(iterator.hasNext()){
+//        name.append(" ∪ ");
+//      }
 
       master = Sets.union(master, each.wordSet());
 
     }
 
-    final Project<T> first = Project.createProject("(" + name.toString() + ")", master);
+    final Project<T> first = Project.createProject("(∀projects)", master);
     projects.add(first);
 
 
@@ -121,6 +127,4 @@ public class Partitions {
 
     return projects;
   }
-
-
 }
