@@ -4,45 +4,45 @@ import com.google.common.collect.Sets;
 import com.vesperin.text.Selection.Word;
 import com.vesperin.text.tokenizers.WordsTokenizer;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * @author Huascar Sanchez
  */
 public class Project <T> {
   private final String    name;
-  private final Corpus<T> corpus;
   private final Set<Word> words;
-
-  private Project(String name, Corpus<T> corpus, WordsTokenizer tokenizer){
-    this.name   = name;
-    this.corpus = corpus;
-    this.words  = Introspector.typicalityRank(corpus, tokenizer)
-      .stream().collect(Collectors.toSet());
-  }
 
   private Project(String name, Set<Word> words){
     this.name   = name;
     this.words  = words;
-    this.corpus = Corpus.ofGenericType(Sets.newHashSet());
+  }
+
+  /**
+   * Creates an empty project; that is a project with no words.
+   * These words should be gathered using either
+   * {@link Introspector#frequentWords(Corpus, WordsTokenizer)} or
+   * {@link Introspector#typicalityRank(Corpus, WordsTokenizer)} or
+   * {@link Introspector#typicalityQuery(int, Corpus, WordsTokenizer)}.
+   *
+   * @param name name of project.
+   * @param <T> type of elements enclosed by this project.
+   * @return a new project object.
+   */
+  public static <T> Project<T> emptyProject(String name){
+    return createProject(name, Sets.newHashSet());
   }
 
   /**
    * Creates a new project.
    *
-   * @param name the name of a project
-   * @param corpus  corpus object
-   * @param tokenizer word tokenizer
-   * @param <T> element type
-   * @return new project object
-   */
-  public static <T> Project<T> createProject(String name, Corpus<T> corpus, WordsTokenizer tokenizer){
-    return new Project<>(name, corpus, tokenizer);
-  }
-
-  /**
-   * Creates a new project.
+   * These words should be gathered using either
+   * {@link Introspector#frequentWords(Corpus, WordsTokenizer)} or
+   * {@link Introspector#typicalityRank(Corpus, WordsTokenizer)} or
+   * {@link Introspector#typicalityQuery(int, Corpus, WordsTokenizer)}.
    *
    * @param name the name of a project
    * @param words  words extracted from a secondary corpus object
@@ -54,29 +54,53 @@ public class Project <T> {
   }
 
   /**
+   * Adds a word to this project.
+   * @param word word object to add
+   */
+  public void add(Word word){
+    this.words.add(word);
+  }
+
+  /**
+   * Adds a set of words to this project.
+   * @param words word set to add
+   */
+  public void add(Collection<Word> words){
+    if(Objects.isNull(words)) return;
+    if(words.contains(null)) return;
+
+    words.forEach(this::add);
+  }
+
+  /**
    * Extracts all shared words from a group of projects.
    *
    * @param group the group of projects.
    * @return the set of words shared by all the projects in the
    *    group object.
    */
-  public static Set<Word> from(Grouping.Group group){
+  public static Set<Word> toWords(List<Project<?>> group){
     final Set<Word> words = Sets.newHashSet();
-    Grouping.Group.items(group, Project.class)
-      .stream()
+    group.stream()
       .map(p -> p.words)
       .forEach(words::addAll);
 
     return words;
   }
 
-  /**
-   * Appends another corpus object to the current one.
-   *
-   * @param other the secondary corpus object.
-   */
-  public void append(Corpus<T> other){
-    corpus().add(other);
+  @Override public int hashCode() {
+    return Objects.hash(name(), wordSet());
+  }
+
+  @Override public boolean equals(Object obj) {
+    if(!(obj instanceof Project)) return false;
+
+    final Project<T> other = (Project<T>) obj;
+
+    final boolean sameName  = other.name().equals(name());
+    final boolean sameWords = wordSet().equals(other.wordSet());
+
+    return sameName && sameWords;
   }
 
   /**
@@ -93,14 +117,7 @@ public class Project <T> {
     return words;
   }
 
-  /**
-   * @return the project's corpus.
-   */
-  public Corpus<T> corpus() {
-    return corpus;
-  }
-
   @Override public String toString() {
-    return name();
+    return String.format("%s with %d words", name(), wordSet().size());
   }
 }

@@ -5,6 +5,9 @@ import com.google.common.primitives.Doubles;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
 import com.vesperin.text.groups.Magnet;
+import com.vesperin.text.groups.intersection.IntersectWordsMagnet;
+import com.vesperin.text.groups.intersection.JaccardWordsMagnet;
+import com.vesperin.text.groups.intersection.WordsMagnet;
 import com.vesperin.text.groups.kmeans.DocumentKMeans;
 import com.vesperin.text.groups.kmeans.WordKMeans;
 import com.vesperin.text.groups.kruskal.UnionFindMagnet;
@@ -18,6 +21,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 
 /**
  * Grouping mixin.
@@ -171,6 +175,56 @@ public interface Grouping extends Executable {
     documents.forEach(group::add);
 
     return regroups(group);
+  }
+
+  /**
+   * Assigns projects to specific groups of projects using word set intersection.
+   *
+   * @param projects projects to partition
+   * @param <T> type of elements stored in a project.
+   * @return a new groups object.
+   */
+  static <T> Groups groupProjectsBySetIntersection(List<Project<T>> projects){
+    return new GroupingImpl().ofProjects(projects, new IntersectWordsMagnet<>());
+  }
+
+
+  /**
+   * Assigns projects to specific groups of projects using word set intersection.
+   *
+   * @param projects projects to partition
+   * @param <T> type of elements stored in a project.
+   * @return a new groups object.
+   */
+  static <T> Groups groupProjectsBySetSimilarity(List<Project<T>> projects){
+    return new GroupingImpl().ofProjects(projects, new JaccardWordsMagnet<>());
+  }
+
+
+  /**
+   * Assigns projects to specific groups.
+   *
+   * @param projects list of projects to partition
+   * @param magnet clustering strategy
+   * @param <T> type of elements in the projects
+   * @return a new groups object.
+   */
+  default <T> Groups ofProjects(List<Project<T>> projects, WordsMagnet<T> magnet){
+    if(Objects.isNull(projects) || projects.isEmpty() || Objects.isNull(magnet))
+      return Groups.emptyGroups();
+
+    final Groups groups = groups(projects, magnet);
+
+    BasicExecutionMonitor.get().info(
+      String.format(
+        "Grouping#ofProjects: %d projects were partitioned into %d clusters; " +
+          "using the Typical Words Intersection algorithm.",
+        projects.size(),
+        groups.size()
+      )
+    );
+
+    return groups;
   }
 
   /**
@@ -498,11 +552,13 @@ public interface Grouping extends Executable {
     @Override public boolean equals(Object obj) {
       if(!(obj instanceof Group)) return false;
       final Group objGroup = (Group) obj;
-      return objGroup.itemList().equals(itemList());
+      final Set<Object> o = objGroup.itemList().stream().collect(Collectors.toSet());
+      final Set<Object> i = itemList().stream().collect(Collectors.toSet());
+      return o.equals(i);
     }
 
     @Override public int hashCode() {
-      return 31 * itemList().hashCode();
+      return 31 * itemList().stream().collect(toSet()).hashCode();
     }
 
     @Override public void remove(Object item) {
