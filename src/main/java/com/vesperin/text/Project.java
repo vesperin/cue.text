@@ -12,7 +12,7 @@ import java.util.Set;
 /**
  * @author Huascar Sanchez
  */
-public class Project <T> {
+public class Project {
   private final String    name;
   private final Set<Word> words;
 
@@ -29,10 +29,9 @@ public class Project <T> {
    * {@link Introspector#typicalityQuery(int, Corpus, WordsTokenizer)}.
    *
    * @param name name of project.
-   * @param <T> type of elements enclosed by this project.
    * @return a new project object.
    */
-  public static <T> Project<T> emptyProject(String name){
+  public static Project emptyProject(String name){
     return createProject(name, Sets.newHashSet());
   }
 
@@ -46,11 +45,10 @@ public class Project <T> {
    *
    * @param name the name of a project
    * @param words  words extracted from a secondary corpus object
-   * @param <T> element type
    * @return new project object
    */
-  public static <T> Project<T> createProject(String name, Set<Word> words){
-    return new Project<>(name, words);
+  public static Project createProject(String name, Set<Word> words){
+    return new Project(name, words);
   }
 
   /**
@@ -79,7 +77,7 @@ public class Project <T> {
    * @return the set of words shared by all the projects in the
    *    group object.
    */
-  public static Set<Word> toWords(List<Project<?>> group){
+  public static Set<Word> toWords(List<Project> group){
     final Set<Word> words = Sets.newHashSet();
     group.stream()
       .map(p -> p.words)
@@ -95,7 +93,7 @@ public class Project <T> {
   @Override public boolean equals(Object obj) {
     if(!(obj instanceof Project)) return false;
 
-    final Project<T> other = (Project<T>) obj;
+    final Project other = (Project) obj;
 
     final boolean sameName  = other.name().equals(name());
     final boolean sameWords = wordSet().equals(other.wordSet());

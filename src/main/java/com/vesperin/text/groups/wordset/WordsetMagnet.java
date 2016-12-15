@@ -1,4 +1,4 @@
-package com.vesperin.text.groups.intersection;
+package com.vesperin.text.groups.wordset;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -16,13 +16,13 @@ import java.util.stream.Collectors;
 /**
  * @author Huascar Sanchez
  */
-public abstract class WordsMagnet<T> implements Magnet<Grouping.Groups, Project<T>> {
+public abstract class WordsetMagnet implements Magnet<Grouping.Groups, Project> {
 
   private static final int OVERLAP     = 3;
   private static final int MAX_OVERLAP = 30;
   private final int overlap;
 
-  WordsMagnet(){
+  WordsetMagnet(){
     this(OVERLAP);
   }
 
@@ -30,23 +30,23 @@ public abstract class WordsMagnet<T> implements Magnet<Grouping.Groups, Project<
    *
    * @param overlap overlapping factor (>= 3 and < 10).
    */
-  private WordsMagnet(int overlap){
+  private WordsetMagnet(int overlap){
     this.overlap = overlap;
   }
 
-  @Override public Grouping.Groups apply(List<Project<T>> projects) {
+  @Override public Grouping.Groups apply(List<Project> projects) {
     final int threshold = Math.min(Math.max(Math.max(0, overlap), OVERLAP), MAX_OVERLAP);
 
-    final Map<String, Project<T>> map   = Maps.newHashMap();
+    final Map<String, Project> map   = Maps.newHashMap();
     final Map<String, Set<String>> index = Maps.newHashMap();
     final Set<String> missed = Sets.newHashSet();
 
     projects.forEach(p -> map.put(p.name(), p));
 
-    for(Project<T> a : projects) {
-      Project<T> max = null;
+    for(Project a : projects) {
+      Project max = null;
 
-      for(Project<T> b: projects) {
+      for(Project b: projects) {
         if(Objects.equals(a, b)) continue;
 
         if(Objects.isNull(max)){
@@ -80,8 +80,8 @@ public abstract class WordsMagnet<T> implements Magnet<Grouping.Groups, Project<
     final Set<Grouping.Group> groups = Sets.newHashSet();
     for(String key : index.keySet()){
       final Grouping.Group group = Grouping.newGroup();
-      final Project<T> head = map.get(key);
-      final Set<Project<T>> tail = index.get(key).stream()
+      final Project head = map.get(key);
+      final Set<Project> tail = index.get(key).stream()
         .map(map::get)
         .collect(Collectors.toSet());
 
@@ -102,11 +102,11 @@ public abstract class WordsMagnet<T> implements Magnet<Grouping.Groups, Project<
    * @param b second project
    * @return a user-defined score that compares these two projects.
    */
-  protected abstract double score(Project<T> a, Project<T> b);
+  protected abstract double score(Project a, Project b);
 
 
   private void populateIndex(int threshold, Map<String, Set<String>> index,
-                             Set<String> missed, Project<T> a, Project<T> max) {
+                             Set<String> missed, Project a, Project max) {
 
     final Set<Selection.Word> common = Sets.intersection(max.wordSet(), a.wordSet());
 
@@ -135,7 +135,7 @@ public abstract class WordsMagnet<T> implements Magnet<Grouping.Groups, Project<
   }
 
 
-  static <T> double jaccard(Project<T> a, Project<T> b) {
+  static double jaccard(Project a, Project b) {
 
     final Set<Selection.Word> intersect = Sets.intersection(a.wordSet(), b.wordSet());
     final Set<Selection.Word> union     = Sets.union(a.wordSet(), b.wordSet());

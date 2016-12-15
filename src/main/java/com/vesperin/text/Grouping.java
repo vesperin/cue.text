@@ -1,16 +1,18 @@
 package com.vesperin.text;
 
 import Jama.Matrix;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.common.primitives.Doubles;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
 import com.vesperin.text.groups.Magnet;
-import com.vesperin.text.groups.intersection.IntersectWordsMagnet;
-import com.vesperin.text.groups.intersection.JaccardWordsMagnet;
-import com.vesperin.text.groups.intersection.WordsMagnet;
 import com.vesperin.text.groups.kmeans.DocumentKMeans;
 import com.vesperin.text.groups.kmeans.WordKMeans;
 import com.vesperin.text.groups.kruskal.UnionFindMagnet;
+import com.vesperin.text.groups.wordset.IntersectionWordsetMagnet;
+import com.vesperin.text.groups.wordset.JaccardWordsetMagnet;
+import com.vesperin.text.groups.wordset.WordsetMagnet;
 import com.vesperin.text.spi.BasicExecutionMonitor;
 import com.vesperin.text.utils.Jamas;
 import com.vesperin.text.utils.Strings;
@@ -181,11 +183,10 @@ public interface Grouping extends Executable {
    * Assigns projects to specific groups of projects using word set intersection.
    *
    * @param projects projects to partition
-   * @param <T> type of elements stored in a project.
    * @return a new groups object.
    */
-  static <T> Groups groupProjectsBySetIntersection(List<Project<T>> projects){
-    return new GroupingImpl().ofProjects(projects, new IntersectWordsMagnet<>());
+  static Groups groupProjectsBySetIntersection(List<Project> projects){
+    return new GroupingImpl().ofProjects(projects, new IntersectionWordsetMagnet());
   }
 
 
@@ -193,11 +194,42 @@ public interface Grouping extends Executable {
    * Assigns projects to specific groups of projects using word set intersection.
    *
    * @param projects projects to partition
-   * @param <T> type of elements stored in a project.
    * @return a new groups object.
    */
-  static <T> Groups groupProjectsBySetSimilarity(List<Project<T>> projects){
-    return new GroupingImpl().ofProjects(projects, new JaccardWordsMagnet<>());
+  static Groups groupProjectsBySetSimilarity(List<Project> projects){
+    return new GroupingImpl().ofProjects(projects, new JaccardWordsetMagnet());
+  }
+
+  /**
+   * Assigns projects to specific groups using the Kmeans algorithm.
+   *
+   * @param projects projects to be partition.
+   * @return a new groups object.
+   */
+  static Groups groupProjectsByKmeans(List<Project> projects){
+    final Map<Word, Set<String>> map = Maps.newHashMap();
+
+    for(Project p : projects){
+      final Set<Word> words  = p.wordSet();
+
+      for(Word w : words){
+
+        final Word nWord = Selection.createWord(w.element());
+        if(map.containsKey(nWord)){
+          map.get(nWord).add(p.name());
+        } else {
+          map.put(nWord, Sets.newHashSet(p.name()));
+        }
+      }
+    }
+
+    for(Word each : map.keySet()){
+
+      final Set<String> containers = map.get(each);
+      containers.forEach(each::add);
+    }
+
+    return groupDocsUsingWords(map.keySet().stream().collect(toList()));
   }
 
 
@@ -206,10 +238,9 @@ public interface Grouping extends Executable {
    *
    * @param projects list of projects to partition
    * @param magnet clustering strategy
-   * @param <T> type of elements in the projects
    * @return a new groups object.
    */
-  default <T> Groups ofProjects(List<Project<T>> projects, WordsMagnet<T> magnet){
+  default Groups ofProjects(List<Project> projects, WordsetMagnet magnet){
     if(Objects.isNull(projects) || projects.isEmpty() || Objects.isNull(magnet))
       return Groups.emptyGroups();
 
@@ -239,15 +270,13 @@ public interface Grouping extends Executable {
 
     final Groups groups = groups(words, new WordKMeans());
 
-    if(BasicExecutionMonitor.get().isActive()){
-      BasicExecutionMonitor.get().info(
-        String.format(
-          "Grouping#ofWords: %d words were partitioned into %d clusters; using the Kmeans algorithm.",
-          words.size(),
-          groups.size()
-        )
-      );
-    }
+    BasicExecutionMonitor.get().info(
+      String.format(
+        "Grouping#ofWords: %d words were partitioned into %d clusters; using the Kmeans algorithm.",
+        words.size(),
+        groups.size()
+      )
+    );
 
     return groups;
   }
@@ -294,16 +323,13 @@ public interface Grouping extends Executable {
     final Groups groups = groups(docs, new UnionFindMagnet());
 
 
-    if(BasicExecutionMonitor.get().isActive()){
-
-      BasicExecutionMonitor.get().info(
-        String.format(
-          "Grouping#reGroups: %d documents were partitioned into %d clusters; using the Kruskal algorithm.",
-          docs.size(),
-          groups.size()
-        )
-      );
-    }
+    BasicExecutionMonitor.get().info(
+      String.format(
+        "Grouping#reGroups: %d documents were partitioned into %d clusters; using the Kruskal algorithm.",
+        docs.size(),
+        groups.size()
+      )
+    );
 
     return groups;
 

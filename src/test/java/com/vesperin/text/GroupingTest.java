@@ -20,6 +20,7 @@ import java.util.Set;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -195,29 +196,37 @@ public class GroupingTest {
 
     final WordsTokenizer tokenizer = Tokenizers.tokenizeTypeDeclarationName();
 
-    final List<Project<Source>> P = Lists.newArrayList();
+    final List<Project> P = Lists.newArrayList();
     int row = 0;
 
     for(Corpus<Source> each : corpusList){
       final String name = ("p" + row++);
-      final Project<Source> project = Project.emptyProject(name);
+      final Project project = Project.emptyProject(name);
       project.add(Introspector.frequentWords(each, tokenizer));
       P.add(project);
     }
 
     final Grouping.Groups groups  = Grouping.groupProjectsBySetIntersection(P);
-    final Grouping.Groups groups2 = Grouping.groupProjectsBySetSimilarity(P);
-
 
     assertNotNull(groups);
     assertFalse(groups.isEmpty());
     assertTrue(groups.size() == 2);
 
+    final Grouping.Groups groups2 = Grouping.groupProjectsBySetSimilarity(P);
+
     assertNotNull(groups2);
     assertFalse(groups2.isEmpty());
 
+    final Grouping.Groups groups3 = Grouping.groupProjectsByKmeans(P);
+
+
+    assertNotNull(groups3);
+    assertFalse(groups3.isEmpty());
+    assertTrue(groups3.size() == 1);
 
     assertEquals(groups.groupList(), groups2.groupList());
+
+    assertNotEquals(groups.groupList(), groups3.groupList());
 
   }
 

@@ -309,7 +309,6 @@ public interface Selection <T> extends Executable {
      */
     int count(int step);
 
-
     /**
      * @return the current count
      */
