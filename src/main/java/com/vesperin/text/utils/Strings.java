@@ -5,8 +5,6 @@ import com.google.common.collect.Sets;
 import com.vesperin.text.spi.BasicExecutionMonitor;
 import com.vesperin.text.spi.ExecutionMonitor;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -21,7 +19,7 @@ public class Strings {
   private Strings(){}
 
   public static String[] wordSplit(String word){
-    return Splits.removeIllegal(Splits.wordTokenize(word));
+    return Splits.removeIllegal(Splits.tokenizeWordWithDictCheck(word));
   }
 
   public static Set<String> intersect(String x, String y){
@@ -329,12 +327,6 @@ public class Strings {
     }
   }
 
-  private static double round(double value, int places){
-    return new BigDecimal(value)
-      .setScale(places, RoundingMode.HALF_UP)
-      .doubleValue();
-  }
-
   private static double gaussianKernel(double t1, double t2, String oi, String oj){
     final double distance = Similarity.jaccardDistance(oi, oj);
     return t1 * Math.exp(-(Math.pow(distance, 2) / t2));
@@ -381,6 +373,12 @@ public class Strings {
 
     final int idx = curated.lastIndexOf("$");
     curated = idx > 0 ? curated.substring(0, idx) : curated;
+
+    curated = curated.isEmpty() ? text : curated;
+
+    if(curated.isEmpty()){
+      return curated;
+    }
 
     curated = Character.isUpperCase(curated.charAt(curated.length() - 1))
       ? curated.substring(0, curated.length() - 1)

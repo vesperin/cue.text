@@ -4,6 +4,7 @@ import Jama.Matrix;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Doubles;
+import com.vesperin.base.Source;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
 import com.vesperin.text.groups.Magnet;
@@ -14,6 +15,9 @@ import com.vesperin.text.groups.wordset.IntersectionWordsetMagnet;
 import com.vesperin.text.groups.wordset.JaccardWordsetMagnet;
 import com.vesperin.text.groups.wordset.WordsetMagnet;
 import com.vesperin.text.spi.BasicExecutionMonitor;
+import com.vesperin.text.tokenizers.Tokenizers;
+import com.vesperin.text.tokenizers.WordsInASTNodeTokenizer;
+import com.vesperin.text.tokenizers.WordsTokenizer;
 import com.vesperin.text.utils.Jamas;
 import com.vesperin.text.utils.Strings;
 
@@ -37,6 +41,14 @@ public interface Grouping extends Executable {
    */
   static Group newGroup(){
     return new BasicGroup();
+  }
+
+  /**
+   * @param name name of the group
+   * @return a new Named Basic Group
+   */
+  static Group newNamedGroup(String name){
+    return new NamedBasicGroup(name);
   }
 
   /**
@@ -177,6 +189,157 @@ public interface Grouping extends Executable {
     documents.forEach(group::add);
 
     return regroups(group);
+  }
+
+  static <T> Groups groupDocs(Corpus<T> corpus, WordsTokenizer tokenizer){
+    Objects.requireNonNull(corpus);
+
+    final boolean isMethodName  = Tokenizers.isMethodNameTokenizer(tokenizer);
+    final boolean isClassName   = Tokenizers.isClassNameTokenizer(tokenizer);
+
+
+    final Map<String, Set<Document>> clusters = new HashMap<>();
+    final WordsInASTNodeTokenizer nonNullTokenizer =
+      (WordsInASTNodeTokenizer) Objects.requireNonNull(tokenizer);
+
+    @SuppressWarnings("unchecked")
+    final Set<Source>    dataSet      = (Set<Source>) corpus.dataSet(); // unchecked warning
+    final List<Source>   sortedCorpus = dataSet.stream()
+      .sorted((a, b) -> b.getName().length() - a.getName().length())
+      .collect(Collectors.toList());
+
+    for(Source each : sortedCorpus){
+
+      final Source source = Objects.requireNonNull(each);
+      final Corpus<Source> singleton = Corpus.ofSources();
+      singleton.add(source);
+
+      final Selection<Source> sourceSelection = Selection.newSelection();
+
+      List<Word>  words = sourceSelection.from(singleton, nonNullTokenizer);
+      Selection.WordCounter wordCounter = new Selection.WordCounter(words, tokenizer.stopWords());
+      words = wordCounter.top(words.size());
+
+      if(words.isEmpty()) continue;
+
+      if(isClassName){
+
+        final Document document = new Selection.DocumentImpl(
+          words.get(0).element().hashCode(),
+          words.get(0).container().iterator().next()
+        );
+
+        trapDocument(document, words, clusters);
+
+      } else if(isMethodName){
+
+        final Index index = Index.createIndex(words);
+        final Set<Document> indexedDocuments = index.docSet();
+
+        for(Document document : indexedDocuments) {
+
+          final List<Word> documentWords = index.wordList(document);
+          trapDocument(document, documentWords, clusters);
+        }
+      }
+
+    }
+
+    if(clusters.isEmpty()) return Groups.emptyGroups();
+
+    final List<Group> localGroups = new ArrayList<>();
+    for(String label : clusters.keySet()){
+      final Group group = Grouping.newNamedGroup(label);
+
+      clusters.get(label).forEach(group::add);
+
+      localGroups.add(group);
+    }
+
+    return Groups.of(localGroups);
+
+  }
+
+  static void trapDocument(Document document, List<Word>  words, Map<String, Set<Document>> clusters){
+
+    String key   = makeKey(words);
+    String venue = findVenue(clusters, words);
+    if(venue.length() == 0) {
+      clusters.put(key, new HashSet<>());
+    } else {
+      key = venue;
+    }
+
+    clusters.get(key).add(document);
+  }
+
+  static String findVenue(Map<String, Set<Document>> map, List<Word> words){
+
+    final List<String> wordStrings = words.stream().map(Word::element).collect(toList());
+    Collections.reverse(wordStrings);
+
+    final  Set<String> memory = new HashSet<>();
+    String query  = null;
+    String maxKey = "";
+
+    boolean match;
+
+    for(String word : wordStrings){
+      if(Objects.isNull(query)) { query = word + ";"; } else {
+        query = word + ";" + query;
+      }
+
+      if(containsKey(memory, map, query) && query.length() > maxKey.length()){
+        maxKey = query;
+        match  = true;
+      } else {
+        match = false;
+      }
+
+      if(!match) break;
+    }
+
+    return memory.isEmpty() ? maxKey : memory.iterator().next();
+  }
+
+  static String longestCommonSuffix(List<String> strings) {
+    if (strings.size() == 0) { return null; }
+
+    for (int suffixLen = 0; suffixLen < strings.get(0).length(); suffixLen++) {
+      char c = strings.get(0).charAt(suffixLen);
+      for (int i = 1; i < strings.size(); i++) {
+        if ( suffixLen >= strings.get(i).length() ||
+          strings.get(i).charAt(suffixLen) != c ) {
+          // Mismatch found
+          return strings.get(i).substring(0, suffixLen);
+        }
+      }
+    }
+    return strings.get(0);
+  }
+
+  static boolean containsKey(Set<String> mem, Map<String, Set<Document>> map, String query){
+    for(String eachKey : map.keySet()){
+      if(eachKey.endsWith(query)) {
+        mem.add(eachKey);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+
+  static String makeKey(List<Word> words) {
+
+    final StringBuilder sb = new StringBuilder(words.size() * 20);
+
+    for (Word s : words) {
+      sb.append(s);
+      sb.append(";");
+    }
+
+    return sb.toString();
   }
 
   /**
@@ -503,6 +666,13 @@ public interface Grouping extends Executable {
     }
   }
 
+  interface NamedGroup extends Group {
+    /**
+     * @return the name of this group
+     */
+    String name();
+  }
+
   /**
    * Group holding a set of similar words (similar by some vector-based metric).
    */
@@ -598,6 +768,40 @@ public interface Grouping extends Executable {
 
     @Override public String toString() {
       return itemList().toString();
+    }
+  }
+
+  class NamedBasicGroup implements NamedGroup {
+    private final String  name;
+    private final Group   impl;
+
+    NamedBasicGroup(String name){
+      this(name, new BasicGroup());
+    }
+
+    NamedBasicGroup(String name, Group impl){
+      this.name = name;
+      this.impl = impl;
+    }
+
+    @Override public void add(Object item) {
+      impl.add(item);
+    }
+
+    @Override public void remove(Object item) {
+      impl.remove(item);
+    }
+
+    @Override public List<Object> itemList() {
+      return impl.itemList();
+    }
+
+    @Override public String name() {
+      return name;
+    }
+
+    @Override public String toString() {
+      return name() + ":" + impl.toString();
     }
   }
 

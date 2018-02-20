@@ -14,28 +14,38 @@ public class Tokenizers {
   }
 
 
+  public static boolean isMethodNameTokenizer(WordsTokenizer tokenizer){
+    return tokenizer instanceof WordsInMethodNameTokenizer;
+  }
+
+  public static boolean isClassNameTokenizer(WordsTokenizer tokenizer){
+    return tokenizer instanceof WordsInClassNameTokenizer;
+  }
+
   /**
-   *
-   * @return
+   * @return a new {@link WordsInClassNameTokenizer} object.
    */
   public static WordsInASTNodeTokenizer tokenizeTypeDeclarationName(){
     return new WordsInClassNameTokenizer(Collections.emptySet(), Collections.emptySet());
   }
 
   /**
+   * Creates a new {@link WordsInClassNameTokenizer} object given a set of stopwords.
    *
-   * @param stopWords
-   * @return
+   * @param stopWords used stop words set.
+   * @return a new {@link WordsInClassNameTokenizer} object.
    */
   public static WordsInASTNodeTokenizer tokenizeTypeDeclarationName(Set<StopWords> stopWords){
     return new WordsInClassNameTokenizer(Collections.emptySet(), stopWords);
   }
 
   /**
+   * Creates a new {@link WordsInClassNameTokenizer} object given a set of
+   * permitted words and a set of stopwords.
    *
-   * @param whiteSet
-   * @param stopWords
-   * @return
+   * @param whiteSet set of permitted words
+   * @param stopWords set of stop words.
+   * @return a new {@link WordsInClassNameTokenizer} object.
    */
   public static WordsInASTNodeTokenizer tokenizeTypeDeclarationName(Set<String> whiteSet, Set<StopWords> stopWords){
     return new WordsInClassNameTokenizer(whiteSet, stopWords);
@@ -44,27 +54,28 @@ public class Tokenizers {
 
 
   /**
-   *
-   * @return
+   * @return a new {@link WordsInMethodNameTokenizer} object.
    */
   public static WordsInASTNodeTokenizer tokenizeMethodDeclarationName(){
     return new WordsInMethodNameTokenizer(Collections.emptySet(), Collections.emptySet());
   }
 
   /**
+   * Creates a new {@link WordsInMethodNameTokenizer} object.
    *
-   * @param stopWords
-   * @return
+   * @param stopWords set of stop words.
+   * @return a new {@link WordsInMethodNameTokenizer} object.
    */
   public static WordsInASTNodeTokenizer tokenizeMethodDeclarationName(Set<StopWords> stopWords){
     return new WordsInMethodNameTokenizer(Collections.emptySet(), stopWords);
   }
 
   /**
+   * Creates a new {@link WordsInMethodNameTokenizer} object.
    *
-   * @param whiteSet
-   * @param stopWords
-   * @return
+   * @param whiteSet set of permitted words
+   * @param stopWords set of stop words
+   * @return a new {@link WordsInMethodNameTokenizer} object.
    */
   public static WordsInASTNodeTokenizer tokenizeMethodDeclarationName(Set<String> whiteSet, Set<StopWords> stopWords){
     return new WordsInMethodNameTokenizer(whiteSet, stopWords);

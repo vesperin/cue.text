@@ -7,6 +7,8 @@ import com.vesperin.text.spelling.StopWords;
 import com.vesperin.text.utils.Strings;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.core.dom.IMethodBinding;
+import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.PackageDeclaration;
 import org.eclipse.jdt.core.dom.SimpleName;
@@ -26,6 +28,8 @@ import java.util.stream.Collectors;
  * @author Huascar Sanchez
  */
 public abstract class WordsInASTNodeTokenizer extends SkeletalVisitor implements WordsTokenizer {
+
+  private static final String MISSING = "MISSING";
 
   private final List<Word>      items;
   private final Set<StopWords>  stopWords;
@@ -108,9 +112,18 @@ public abstract class WordsInASTNodeTokenizer extends SkeletalVisitor implements
     }
 
     final String left = type.isPresent() ? (packageName + type.get().getName().getFullyQualifiedName()) + (method.isPresent() ? "#" : "") : "";
-    final String right = method.isPresent() ? method.get().getName().getIdentifier() + (method.get().isConstructor() ? "(C)" : "") : "";
+    final String right = method.map(methodDeclaration -> methodDeclaration.getName().getIdentifier() + (methodDeclaration.isConstructor() ? "(C)" : "")).orElse("");
 
     return left + right;
+  }
+
+  static String resolveClassWithMethodContainer(IMethodBinding declaration, String identifier){
+    final IMethodBinding nonNullMethod     = Objects.requireNonNull(declaration);
+    final String         nonNullIdentifier = Objects.requireNonNull(identifier);
+    final ITypeBinding   declaringClass    = Optional.ofNullable(nonNullMethod.getDeclaringClass()).orElse(null);
+
+    final String fullyQualifiedName = Objects.isNull(declaringClass) ? MISSING : declaringClass.getQualifiedName();
+    return fullyQualifiedName + "#" + nonNullIdentifier;
   }
 
   @Override public Set<StopWords> stopWords() {
@@ -120,6 +133,15 @@ public abstract class WordsInASTNodeTokenizer extends SkeletalVisitor implements
 
   void visit(String container){
     visited.add(container);
+  }
+
+  void locate(String container, Integer... location){
+    if(visited.isEmpty()) return;
+    for(Word each : wordsList()){
+      if(each.container().contains(container)){
+        each.locate(container, location);
+      }
+    }
   }
 
 

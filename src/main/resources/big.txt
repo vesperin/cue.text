@@ -24,6 +24,7 @@ Last changed: March 21, 2014
 3.4 Class declaration
 3.4.1 Exactly one top-level class declaration
 3.4.2 Class member ordering
+Joint joint Joint
 
 4 Formatting
 4.1 Braces
@@ -1138,6 +1139,12 @@ Although it was already out there, it really wasn’t easy to use until closures
 26                          .withMapping(selectGpa)
 27                          .max();
 In Java 8, you can do the following:
+
+JointWord
+
+JointObject
+
+Analog Analog, The Analog clock
 
 1 // create a fork-join-pool
 2 ForkJoinPool pool = new ForkJoinPool();

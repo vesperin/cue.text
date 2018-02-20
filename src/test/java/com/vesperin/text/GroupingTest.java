@@ -164,9 +164,9 @@ public class GroupingTest {
 
   @Test public void testProjectClustering() throws Exception {
     final Set<Source> code1 = Sets.newHashSet(
-      Codebase.quickSort("QuickSort1"),
-      Codebase.quickSort("QuickSort2"),
-      Codebase.quickSort("QuickSort3")
+      Codebase.quickSort("QuickSort1", "extends AbstractQuickSort"),
+      Codebase.quickSort("QuickSort2", "extends DefaultSorting<String>"),
+      Codebase.quickSort("QuickSort3", "implements Sort")
     );
 
     final Set<Source> code2 = Sets.newHashSet(

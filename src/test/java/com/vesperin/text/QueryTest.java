@@ -135,7 +135,7 @@ public class QueryTest {
       assertNotNull(result);
       assertTrue(Result.items(result, Word.class).size() <= 3);
 
-      System.out.println(Document.names(docs) + ": " + result);
+      System.out.println(Document.paths(docs) + ": " + result);
     }
   }
 
@@ -152,7 +152,7 @@ public class QueryTest {
       final List<Document> ds = Group.items(each, Document.class);
       final List<String> result = Recommend.labels(ds);
 
-      final List<String> names     = Document.names(ds);
+      final List<String> names     = Document.paths(ds);
       System.out.println(names + " : [" + Recommend.coalesce(result)  + "]");
     }
   }

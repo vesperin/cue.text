@@ -64,12 +64,14 @@ assemblyExcludedJars in assembly <<= (fullClasspath in assembly) map { cp =>
     "org.eclipse.equinox.common-3.6.0.jar",
     "org.eclipse.equinox.preferences-3.4.1.jar",
     "org.eclipse.equinox.registry-3.5.101.jar",
+    "org.eclipse.core.runtime-3.7.0.jar",
     "org.eclipse.jdt.core-3.10.0.jar",
     "org.eclipse.osgi-3.7.1.jar",
     "org.eclipse.text-3.5.101.jar",
     "airline-io-2.1.0.jar",
     "airline-2.1.0.jar",
-    "jama-1.0.3.jar"
+    "jama-1.0.3.jar",
+    "mix-0.1.jar"
   )
 
   cp filter { jar => excludes(jar.data.getName) }

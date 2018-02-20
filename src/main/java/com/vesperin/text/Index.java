@@ -2,7 +2,9 @@ package com.vesperin.text;
 
 import Jama.Matrix;
 import Jama.SingularValueDecomposition;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.vesperin.base.locations.Location;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
 import com.vesperin.text.tokenizers.WordsTokenizer;
@@ -100,6 +102,27 @@ public class Index {
 
     int idx = 0; for(String each : map.keySet()){
       final Document doc = new Selection.DocumentImpl(idx, each);
+
+      // here is where the locations can messed up
+      // fixme: make sure numbers won't get lost or swapped..
+      final List<Word> allWords = map.get(each);
+
+      for(Word eachWord : allWords){
+        if((doc.getEnd() == 0 && doc.getStart() == 0)) {
+          for(String container : eachWord.locations().keySet()){
+            if(doc.toString().equals(container)){
+
+              final List<Integer> eachLocation = eachWord.locations().get(container);
+              doc.locate(eachLocation.get(0), eachLocation.get(1));
+            }
+
+
+          }
+        }
+
+
+      }
+
       indexMap.put(doc, map.get(each));
       docMap.put(each, doc);
       docSet.add(each);
@@ -109,6 +132,11 @@ public class Index {
     docCount  = indexMap.keySet().size();
     wordCount = wordsSet.size();
     wordList.addAll(wordsSet);
+  }
+
+  public List<Word> wordList(Document document){
+    if(!indexMap.containsKey(document)) return ImmutableList.of();
+    return indexMap.get(document);
   }
 
   void createWordDocMatrix(){

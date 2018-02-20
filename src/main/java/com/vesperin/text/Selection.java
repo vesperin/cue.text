@@ -36,6 +36,11 @@ import static java.util.stream.Collectors.toList;
  * @author Huascar Sanchez
  */
 public interface Selection <T> extends Executable {
+
+  static <T> Selection<T> newSelection(){
+    return new SelectionImpl<>();
+  }
+
   /**
    * Selects the most relevant words in a corpus.
    *
@@ -73,6 +78,8 @@ public interface Selection <T> extends Executable {
     if(isSource && !tokenizer.isLightweightTokenizer()){
       final Source        src     = (Source) element;
       final Context       context = newContext(src);
+
+      if(context == null) return Collections.emptyList();
       final UnitLocation  scope   = buildScope(context);
 
       if(scope == null) return Collections.emptyList();
@@ -210,7 +217,7 @@ public interface Selection <T> extends Executable {
   static List<Word> cleans(Set<StopWords> stopWords, List<Word> relevant){
     return relevant.stream()
       .filter(w -> !Objects.isNull(w) && !StopWords.isStopWord(stopWords, w.element().toLowerCase(Locale.ENGLISH)))
-      .map(w -> Noun.get().isPlural(w.element()) ? WordImpl.from(Noun.get().singularOf(w.element()), w.value(), w.container()) : w )
+      .map(w -> Noun.get().isPlural(w.element()) ? WordImpl.from(Noun.get().singularOf(w.element()), w.count(), w.container()) : w )
       .collect(Collectors.toList());
   }
 
@@ -254,7 +261,7 @@ public interface Selection <T> extends Executable {
     }
 
     shutdownService(service);
-    return result.stream().filter(w -> null != w).collect(toList());
+    return result.stream().filter(Objects::nonNull).collect(toList());
   }
 
 
@@ -279,7 +286,12 @@ public interface Selection <T> extends Executable {
    */
   static Context newContext(Source code){
     Objects.requireNonNull(code);
-    return new EclipseJavaParser().parseJava(code);
+    try {
+      return new EclipseJavaParser().parseJava(code);
+    } catch (Exception e){
+      System.out.println("Ignoring unparsable file: " + code.getName() + ".java");
+      return null;
+    }
   }
 
   interface Filter<I> {
@@ -298,21 +310,28 @@ public interface Selection <T> extends Executable {
     void add(String container);
 
     /**
+     * Sets the location of a container
+     * @param container container
+     * @param fromTo from and to location.
+     */
+    void locate(String container, Integer... fromTo);
+
+    /**
      * Counts one step
      */
-    default int count() {
-      return count(1);
+    default int step() {
+      return step(1);
     }
 
     /**
      * Counts the step
      */
-    int count(int step);
+    int step(int delta);
 
     /**
-     * @return the current count
+     * @return the word's current count
      */
-    int value();
+    int count();
 
     /**
      * @return word's container; expressed
@@ -320,23 +339,42 @@ public interface Selection <T> extends Executable {
      */
     Set<String> container();
 
-
     /**
      * @return word element
      */
     String element();
+
+    /**
+     * @return a map between container and its code location.
+     */
+    Map<String, List<Integer>> locations();
   }
 
   interface Document {
 
     /**
-     * Gets the names of all documents in the list of documents.
+     * Gets the names of all documents (via their Document#path()) in
+     * the list of documents.
      *
      * @param documents list of documents to parse
      * @return a list of document names.
      */
-    static List<String> names(List<Document> documents){
+    static List<String> paths(List<Document> documents){
       return documents.stream().map(Document::path).collect(Collectors.toList());
+    }
+
+    void locate(int start, int end);
+    int getStart();
+    int getEnd();
+
+    /**
+     * Gets the whole text identifying a list of documents.
+     *
+     * @param documents list of documents to look at
+     * @return a list of document containers
+     */
+    static List<String> containers(List<Document> documents){
+      return documents.stream().map(Document::toString).collect(Collectors.toList());
     }
 
     /**
@@ -378,6 +416,9 @@ public interface Selection <T> extends Executable {
     final String namespace;
     final String shortName;
     final String transformedName;
+
+    int start;
+    int end;
 
     public DocumentImpl(int id, String container){
       this.id = id;
@@ -437,6 +478,19 @@ public interface Selection <T> extends Executable {
       return sb.toString();
     }
 
+    @Override public void locate(int start, int end) {
+      this.start = start;
+      this.end   = end;
+    }
+
+    @Override public int getStart() {
+      return start;
+    }
+
+    @Override public int getEnd() {
+      return end;
+    }
+
     @Override public boolean equals(Object obj) {
       if(!(obj instanceof Document)) return false;
       final Document doc = (Document) obj;
@@ -485,6 +539,7 @@ public interface Selection <T> extends Executable {
   class WordImpl implements Word {
     final String      element;
     final Set<String> container;
+    final Map<String, List<Integer>> locations;
 
     int count;
 
@@ -492,6 +547,7 @@ public interface Selection <T> extends Executable {
       this.element    = element;
       this.container  = new HashSet<>();
       this.count      = 1;
+      this.locations  = new HashMap<>();
     }
 
     static Word from(String element, int count, Set<String> container){
@@ -507,6 +563,11 @@ public interface Selection <T> extends Executable {
       if(!this.container.contains(container)){
         this.container.add(container);
       }
+    }
+
+    @Override public void locate(String container, Integer... fromTo) {
+      if(!container().contains(container)) return;
+      locations().put(container, Arrays.asList(fromTo));
     }
 
     @Override public String element() {
@@ -525,17 +586,21 @@ public interface Selection <T> extends Executable {
       return other.element().equalsIgnoreCase(element());
     }
 
-    @Override public int count(int step) {
+    @Override public int step(int step) {
       count = count + step;
       return count;
     }
 
-    @Override public int value() {
+    @Override public int count() {
       return count;
     }
 
     @Override public Set<String> container() {
       return container;
+    }
+
+    @Override public Map<String, List<Integer>> locations() {
+      return locations;
     }
 
     @Override public String toString() {
@@ -563,7 +628,7 @@ public interface Selection <T> extends Executable {
      * @param items items to be counted
      * @param stopWords set of stop words
      */
-    private WordCounter(List<Word> items, Set<StopWords> stopWords){
+    WordCounter(List<Word> items, Set<StopWords> stopWords){
       this.stopWords      = stopWords;
       this.items          = new HashMap<>();
       this.totalItemCount = new AtomicInteger(0);
@@ -613,10 +678,12 @@ public interface Selection <T> extends Executable {
     private void addEntry(Word item) {
       final Word entry = items.get(item);
       if(entry == null) {
-        add(item, item.count());
+        add(item, item.step());
       } else {
         entry.container().addAll(item.container());
-        add(entry, entry.count());
+        entry.locations().putAll(item.locations());
+
+        add(entry, entry.step());
       }
     }
 
@@ -642,6 +709,11 @@ public interface Selection <T> extends Executable {
 
       return new WordImpl(singElement);
     }
+
+    int seenCount(){
+      return totalItemCount.get();
+    }
+
     /**
      * Returns the list of most frequent items.
      *
@@ -653,8 +725,7 @@ public interface Selection <T> extends Executable {
       final int resultSize = Math.min(k, items.size());
       final List<Word> result = new ArrayList<>(resultSize);
 
-      result.addAll(all.subList(0, resultSize).stream()
-        .collect(Collectors.toList()));
+      result.addAll(new ArrayList<>(all.subList(0, resultSize)));
 
       return Collections.unmodifiableList(result);
     }
@@ -667,7 +738,7 @@ public interface Selection <T> extends Executable {
     private List<Word> entriesByFrequency() {
       return items.entrySet().stream()
         .map(Map.Entry::getValue)
-        .sorted((a, b) -> Integer.compare(b.value(), a.value()))
+        .sorted((a, b) -> Integer.compare(b.count(), a.count()))
         .collect(Collectors.toList());
     }
   }

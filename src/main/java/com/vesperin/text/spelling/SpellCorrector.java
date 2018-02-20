@@ -1,13 +1,15 @@
 package com.vesperin.text.spelling;
 
 import com.vesperin.text.nouns.Noun;
+import com.vesperin.text.spi.BasicExecutionMonitor;
+import com.vesperin.text.utils.Ios;
 import com.vesperin.text.utils.Similarity;
 import com.vesperin.text.utils.Strings;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -27,7 +29,7 @@ import static com.vesperin.text.utils.Strings.onlyConsonantsOrVowels;
  * @author Huascar Sanchez
  */
 public enum SpellCorrector implements Corrector {
-  INSTANCE(loadFile());
+  INSTANCE(Ios.loadFile("big.txt"));
 
   private static final String CAMEL_CASE = "((?<!(^|[A-Z]))(?=[A-Z])|(?<!^)(?=[A-Z][a-z]))|_";
 
@@ -36,11 +38,19 @@ public enum SpellCorrector implements Corrector {
   SpellCorrector(Path index){
     this.wordToFrequency = new TreeMap<>();
 
-    try {
-      populateDictionary(index, this.wordToFrequency);
-    } catch (IOException e) {
-      throw new IllegalStateException("Unable to populate dictionary. Cannot find big.txt file!");
+    if(!Objects.isNull(index) && Files.exists(index)) {
+      try {
+        populateDictionary(index, this.wordToFrequency);
+        BasicExecutionMonitor.get().info("big.txt has been loaded");
+      } catch (IOException e) {
+        BasicExecutionMonitor.get().error("big.txt has not been loaded", e);
+        throw new IllegalStateException("Unable to populate dictionary. Cannot find big.txt file!");
+      }
+    } else {
+      populateDictionary(TextFailover.DEFAULT_TEXT, this.wordToFrequency);
+      BasicExecutionMonitor.get().info("big.txt could not been found; failover text has been used instead.");
     }
+
   }
 
 
@@ -55,7 +65,7 @@ public enum SpellCorrector implements Corrector {
    * @return a suggested correction.
    */
   public static String suggestCorrection(String word){
-    return SpellCorrector.getInstance().correct(word);
+    return word; //SpellCorrector.getInstance().correct(word);
   }
 
 
@@ -77,17 +87,16 @@ public enum SpellCorrector implements Corrector {
         }
 
         final Set<String> winners = new HashSet<>();
-        if(e1.isPresent()) winners.add(e1.get());
-        if(e2.isPresent()) winners.add(e2.get());
-        if(e3.isPresent()) winners.add(e3.get());
+        e1.ifPresent(winners::add);
+        e2.ifPresent(winners::add);
+        e3.ifPresent(winners::add);
 
         final Optional<String> winner = winners.stream().max(
-          (a, b) -> Double.compare(Similarity.jaccard(word, a), Similarity.jaccard(word, b))
+          Comparator.comparingDouble(a -> Similarity.jaccard(word, a))
         );
 
-        if(winner.isPresent()) return winner.get();
+        return winner.orElse(word);
 
-        return word;
       } else {
         Optional<String> e0 = max(getPrefixedBy(word, wordToFrequency).stream());
 
@@ -95,9 +104,8 @@ public enum SpellCorrector implements Corrector {
           e0 = max(getPrefixedBy(word.substring(0, word.length() - 1), wordToFrequency).stream());
         }
 
-        if(e0.isPresent()) return e0.get();
+        return e0.orElse(word);
 
-        return word;
       }
     }
   }
@@ -128,17 +136,9 @@ public enum SpellCorrector implements Corrector {
     return filterPrefix(baseMap, word).keySet();
   }
 
-  private static Path loadFile(){
-    try {
-      return Paths.get((Corrector.class.getResource("/big.txt").toURI()));
-    } catch (Exception e){
-      return null;
-    }
-  }
-
 
   private Optional<String> max(Stream<String> stream){
-    return stream.max((a, b) -> wordToFrequency.get(a) - wordToFrequency.get(b));
+    return stream.max(Comparator.comparingInt(a -> wordToFrequency.get(a)));
   }
 
   private Stream<String> mutate(final String word){
@@ -170,7 +170,14 @@ public enum SpellCorrector implements Corrector {
     Objects.requireNonNull(dictionaryFile);
 
     final List<String> lines = Files.readAllLines(dictionaryFile);
+    processLines(lines, dict);
+  }
 
+  private static void populateDictionary(List<String> lines, SortedMap<String, Integer> dict){
+    processLines(lines, dict);
+  }
+
+  private static void processLines(List<String> lines, SortedMap<String, Integer> dict) {
     Pattern p = Pattern.compile("\\w+");
     for(String line : lines){
       final Matcher m = p.matcher(line);

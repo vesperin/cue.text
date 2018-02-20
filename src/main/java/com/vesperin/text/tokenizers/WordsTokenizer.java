@@ -7,11 +7,8 @@ import com.vesperin.text.spelling.StopWords;
 import com.vesperin.text.utils.Similarity;
 import com.vesperin.text.utils.Strings;
 
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.vesperin.text.spelling.SpellCorrector.suggestCorrection;
 
@@ -51,6 +48,33 @@ public interface WordsTokenizer extends Iterable<Word> {
   }
 
   /**
+   * Tokenize text and then retains only the substrings in this text that
+   * are contained in the specified alternative text.
+   *
+   * @param text actual text
+   * @param alternative super class text
+   * @param container actual Java class (fully qualified name)
+   */
+  default void tokenize(String text, String alternative, String container){
+    if (!skipThrowablesAlike(text) && !skipThrowablesAlike(alternative)) {
+      // make sure we have a valid split
+
+      final String[] x = tokenize(text);
+      final String[] y = tokenize(alternative);
+
+      Set<String> a = Arrays.stream(x).collect(Collectors.toSet());
+      Set<String> b = Arrays.stream(y).collect(Collectors.toSet());
+
+      a.retainAll(b);
+
+      final String[] c = (!a.isEmpty()) ? a.toArray(new String[a.size()]) : x;
+
+      // process all split tokens
+      process(c, container);
+    }
+  }
+
+  /**
    * Tokenize some text extracted from either a given container or the body of
    * a given container.
    *
@@ -79,9 +103,7 @@ public interface WordsTokenizer extends Iterable<Word> {
    * @param tokens raw tokens
    */
   default void process(String[] tokens, String from){
-    final Set<String> distinctTokens = Strings.intersect(tokens, tokens);
-
-    for (String eachToken : distinctTokens) {
+    for (String eachToken : tokens) {
       if (skipStopWords(eachToken, stopWords())) continue;
 
       String token = eachToken.toLowerCase(Locale.ENGLISH);

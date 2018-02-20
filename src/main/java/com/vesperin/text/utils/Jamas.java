@@ -2,7 +2,6 @@ package com.vesperin.text.utils;
 
 import Jama.Matrix;
 import Jama.SingularValueDecomposition;
-import com.google.common.collect.Iterables;
 import com.vesperin.text.Selection.Word;
 
 import java.io.PrintWriter;
@@ -210,9 +209,6 @@ public class Jamas {
     final int k = (int) Math.floor(Math.sqrt(corpus.getColumnDimension()));
     double[][] queryVector = new double[k][1];
 
-
-//    Arrays.fill(queryVector, 0.0D);
-
     // populate query vector with real values
     for(int i = 0; i < query.size(); i++){
       for(int j = 0; j < k; j++){
@@ -265,6 +261,7 @@ public class Jamas {
 
   private static Matrix getSigma(int cols, double[] singularValues){
     Matrix var1 = new Matrix(cols, cols);
+
     double[][] var2 = var1.getArray();
 
     for(int var3 = 0; var3 < cols; ++var3) {

@@ -1,5 +1,6 @@
 package com.vesperin.text.spelling;
 
+import com.vesperin.text.utils.Ios;
 import com.vesperin.text.utils.Strings;
 
 import java.io.IOException;
@@ -9,6 +10,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 
 import static com.vesperin.text.utils.Strings.isNumber;
@@ -72,10 +74,20 @@ public enum Dictionary implements Words <String> {
 
   private static Path loadBuiltInDictionary(){
     try {
-      return Paths.get("/usr/share/dict/words");
-    } catch (Exception e){
-      return null;
+      final Path systemDict = Paths.get("/usr/share/dict/words");
+      if(Ios.exists(systemDict)){
+        return systemDict;
+      }
+    } catch (Exception ignored){
+      System.err.println("Unable to access the system's dictionary.");
     }
+
+    final Path backup = Ios.loadFile("dict.txt");
+    if(Ios.exists(backup)){
+      return backup;
+    }
+
+    throw new NoSuchElementException("Unable to find dictionary");
   }
 
   private static void wordCollection(Path dictionaryFile, List<String> dict) throws IOException {

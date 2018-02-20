@@ -1,9 +1,12 @@
 package com.vesperin.text.utils;
 
+import com.vesperin.text.spelling.Dictionary;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.StringTokenizer;
 import java.util.regex.Pattern;
@@ -74,6 +77,44 @@ public final class Splits {
    */
   public static String[] wordTokenize(String text) {
     return wordTokenize(text, false);
+  }
+
+  /**
+   * Tokenize text and then pick those words that
+   * appear in our dictionary (See {@link Dictionary}).
+   *
+   * @param text text to be tokenized.
+   * @return an array of tokens.
+   */
+  public static String[] tokenizeWordWithDictCheck(String text){
+    final String[] tokens = wordTokenize(text);
+
+    final List<String> words = new LinkedList<>();
+
+    for(String each : tokens){
+      String lowerCaseWord  = each.toLowerCase();
+      String longestWordFwd = null;
+
+      for (int i = 0; i <= lowerCaseWord.length(); i++) {
+        final String subStr = lowerCaseWord.substring(0, i);
+        if (subStr.length() > 2) {
+          if (Dictionary.isDefined(subStr)) {
+            longestWordFwd = subStr;
+          }
+
+        }
+
+      }
+
+      if (longestWordFwd == null) {
+        longestWordFwd = lowerCaseWord;
+      }
+
+      words.add(longestWordFwd);
+
+    }
+
+    return words.toArray(new String[words.size()]);
   }
 
   /**
