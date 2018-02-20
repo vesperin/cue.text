@@ -193,7 +193,7 @@ public interface Selection <T> extends Executable {
     final List<Word> words = from(deduplicateWordList(code, tokenizer), new WordByCompositeWeight());
     if(words.isEmpty()) return words;
 
-    BasicExecutionMonitor.get().warn(
+    BasicExecutionMonitor.get().info(
       String.format("Selection#topKWords: %d total words collected.", words.size())
     );
 
@@ -779,7 +779,7 @@ public interface Selection <T> extends Executable {
         .sorted((a, b) -> Doubles.compare(b.getValue(), a.getValue()))
         .map(Map.Entry::getKey).collect(toList());
 
-      return allWords.stream().collect(Collectors.toList());
+      return new ArrayList<>(allWords);
     }
 
     static Map<Word, Double> weightWords(Matrix raw, List<Word> words) {

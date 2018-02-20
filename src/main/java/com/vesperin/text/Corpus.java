@@ -59,8 +59,8 @@ public interface Corpus <T> extends Iterable <T> {
     elements.forEach(this::add);
 
     if(BasicExecutionMonitor.get().isActive()){
-      BasicExecutionMonitor.get().warn(
-        String.format("Corpus#addAll: %d elements stored in corpus.", size())
+      BasicExecutionMonitor.get().info(
+        String.format("Corpus#addAll: %d elements just stored in corpus.", size())
       );
     }
 
