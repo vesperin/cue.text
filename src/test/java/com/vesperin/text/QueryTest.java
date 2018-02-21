@@ -13,6 +13,7 @@ import com.vesperin.text.tokenizers.Tokenizers;
 import com.vesperin.text.spelling.StopWords;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -139,7 +140,7 @@ public class QueryTest {
     }
   }
 
-  @Test public void testLabelExtraction() throws Exception {
+  @Ignore @Test public void testLabelExtraction() throws Exception {
     final Stopwatch start = Stopwatch.createStarted();
     Grouping.Group g = Grouping.newGroup();
     documents.forEach(g::add);

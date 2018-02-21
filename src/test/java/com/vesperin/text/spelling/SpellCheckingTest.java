@@ -27,7 +27,7 @@ public class SpellCheckingTest {
     words.add("str");
 
     for(String each : words){
-      final String correction = suggestCorrection(each);
+      final String correction = suggestCorrection(each, true);
       System.out.println(correction);
        assertThat(corrections.contains(correction), is(true));
     }

@@ -8,6 +8,7 @@ import com.vesperin.text.utils.Similarity;
 import com.vesperin.text.utils.Strings;
 
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static com.vesperin.text.spelling.SpellCorrector.suggestCorrection;
@@ -44,7 +45,13 @@ public interface WordsTokenizer extends Iterable<Word> {
    * @return an array of Strings
    */
   default String[] tokenize(String text){
-    return Strings.wordSplit(text);
+    final List<String> splits = Arrays.stream(text.split(Pattern.quote("$")))
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
+
+    final String prunedText = splits.get(0); // left side of the text
+
+    return Strings.wordSplit(prunedText);
   }
 
   /**

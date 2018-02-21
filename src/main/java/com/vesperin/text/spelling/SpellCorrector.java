@@ -65,7 +65,12 @@ public enum SpellCorrector implements Corrector {
    * @return a suggested correction.
    */
   public static String suggestCorrection(String word){
-    return word; //SpellCorrector.getInstance().correct(word);
+    return suggestCorrection(word, false);
+  }
+
+  public static String suggestCorrection(String word, boolean tryCorrect){
+    if (tryCorrect) return SpellCorrector.getInstance().correct(word);
+    return word;
   }
 
 

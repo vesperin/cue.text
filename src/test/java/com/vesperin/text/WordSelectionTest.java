@@ -284,7 +284,7 @@ public class WordSelectionTest {
     System.out.println(words);
     System.out.println(words2);
     assertThat(words.isEmpty(), is(false));
-    assertThat(words2.isEmpty(), is(true));
+    assertThat(words2.isEmpty(), is(false));
     assertThat(words.containsAll(words2), is(true));
 
   }

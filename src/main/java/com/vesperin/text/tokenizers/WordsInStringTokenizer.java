@@ -2,7 +2,6 @@ package com.vesperin.text.tokenizers;
 
 import com.vesperin.text.Selection.Word;
 import com.vesperin.text.spelling.StopWords;
-import com.vesperin.text.utils.Strings;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,14 +33,6 @@ class WordsInStringTokenizer implements WordsTokenizer {
 
   @Override public boolean isLightweightTokenizer() {
     return true;
-  }
-
-  @Override public String[] tokenize(String text) {
-
-    final int idx = text.lastIndexOf("$");
-    text = idx > 0 ? text.substring(0, idx) : text;
-
-    return Strings.wordSplit(text);
   }
 
   @Override public String toString() {

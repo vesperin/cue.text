@@ -526,7 +526,7 @@ public interface Grouping extends Executable {
       final Map<String, Document> mapping = documents.stream()
         .collect(Collectors.toMap(Document::shortName, Function.identity()));
 
-      final List<String> elements = mapping.keySet().stream().collect(Collectors.toList());
+      final List<String> elements = new ArrayList<>(mapping.keySet());
 
       final List<String> words = elements.stream()
         .map(Strings::wordSplit)

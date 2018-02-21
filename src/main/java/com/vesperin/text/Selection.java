@@ -109,7 +109,7 @@ public interface Selection <T> extends Executable {
    */
   default List<Word> from(String text, WordsTokenizer tokenizer){
 
-    if(text == null || text.isEmpty() || "".equals(text)) return Collections.emptyList();
+    if(text == null || text.isEmpty()) return Collections.emptyList();
 
     final int idx = text.lastIndexOf(".");
 

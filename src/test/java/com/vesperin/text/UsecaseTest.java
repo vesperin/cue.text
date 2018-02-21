@@ -11,6 +11,7 @@ import com.vesperin.text.tokenizers.Tokenizers;
 import com.vesperin.text.utils.Ios;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -65,13 +66,13 @@ public class UsecaseTest {
 //    System.out.println("identifying the most typical words: " + stopwatch);
   }
 
-  @Test public void systemTest0() throws Exception {
+  @Ignore @Test public void systemTest0() throws Exception {
 
     final Grouping.Groups groups = Grouping.regroupDocs(words);
     assertNotNull(groups);
   }
 
-  @Test public void systemTest1() throws Exception {
+  @Ignore @Test public void systemTest1() throws Exception {
 
     final Map<Grouping.Group, Index> mapping = Grouping.buildGroupIndexMapping(words);
     final Grouping.Groups groups = Grouping.regroupDocs(mapping);
@@ -90,7 +91,7 @@ public class UsecaseTest {
     }
   }
 
-  @Test public void systemTest2() throws Exception {
+  @Ignore @Test public void systemTest2() throws Exception {
 
     final Corpus<Source> theCorpus = Corpus.ofSources();
 //    theCorpus.addAll(allSourceFiles());

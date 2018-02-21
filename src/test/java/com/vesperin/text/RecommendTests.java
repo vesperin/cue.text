@@ -9,6 +9,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,6 +30,7 @@ public class RecommendTests {
 
   @BeforeClass public static void setUp() throws Exception {
     corpus = Corpus.ofStrings();
+    corpus.add("mB2CrossA1$CrossA");
     corpus.add("angularVelocity");
     corpus.add("linearVelocity");
     corpus.add("externalForce");
@@ -139,6 +141,14 @@ public class RecommendTests {
     corpus.add("position");
 
     tokenizer = Tokenizers.tokenizeString(StopWords.all());
+  }
+
+  @Test public void testTokenizing() throws Exception {
+    final WordsTokenizer tokenizer = Tokenizers.tokenizeString();
+    for (String each : corpus){
+      final String[] splits = tokenizer.tokenize(each);
+      System.out.println(Arrays.toString(splits));
+    }
   }
 
 

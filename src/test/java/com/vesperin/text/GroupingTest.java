@@ -11,6 +11,7 @@ import com.vesperin.text.tokenizers.Tokenizers;
 import com.vesperin.text.tokenizers.WordsTokenizer;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -56,13 +57,25 @@ public class GroupingTest {
     corpus.addAll(code);
     System.out.println("initializing corpus: " + stopwatch);
 
-    words  = extractor.topKWords(100, corpus, Tokenizers.tokenizeMethodDeclarationBody(Collections.emptySet(), StopWords.all()));
+    words  = extractor.topKWords(100, corpus,
+            Tokenizers.tokenizeMethodDeclarationBody(
+                    Collections.emptySet(), StopWords.all()
+            )
+    );
     System.out.println("loading words from method bodies: " + stopwatch);
 
-    words1 = extractor.topKWords(100, corpus, Tokenizers.tokenizeTypeDeclarationName(Collections.emptySet(), StopWords.of(StopWords.ENGLISH, StopWords.JAVA)));
+    words1 = extractor.topKWords(100, corpus,
+            Tokenizers.tokenizeTypeDeclarationName(
+                    Collections.emptySet(), StopWords.of(StopWords.ENGLISH, StopWords.JAVA)
+            )
+    );
     System.out.println("loading words from class names: " + stopwatch);
 
-    words2 = extractor.topKWords(100, corpus, Tokenizers.tokenizeMethodDeclarationName(Collections.emptySet(), StopWords.all()));
+    words2 = extractor.topKWords(100, corpus,
+            Tokenizers.tokenizeMethodDeclarationName(
+                    Collections.emptySet(), StopWords.all()
+            )
+    );
     System.out.println("loading words from method names: " + stopwatch);
 
     documents = Docs.documents();
@@ -138,7 +151,7 @@ public class GroupingTest {
 
   }
 
-  @Test public void testClusteringWithUnionFind() throws Exception {
+  @Ignore @Test public void testClusteringWithUnionFind() throws Exception {
     Grouping.Group g = Grouping.newGroup();
     documents.forEach(g::add);
 
