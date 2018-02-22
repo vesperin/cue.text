@@ -19,7 +19,7 @@ import static com.vesperin.text.utils.Strings.onlyConsonantsOrVowels;
 /**
  * @author Huascar Sanchez
  */
-public enum Dictionary implements Words <String> {
+public enum Dictionary implements WordKeeper<String> {
   ENGLISH();
 
   private final List<String> words;

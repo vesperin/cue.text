@@ -20,7 +20,7 @@ import java.util.Set;
 /**
  * @author Huascar Sanchez
  */
-public enum StopWords implements Words <String> {
+public enum StopWords implements WordKeeper<String> {
   ENGLISH(), JAVA(), GENERAL(), CUSTOM();
 
 

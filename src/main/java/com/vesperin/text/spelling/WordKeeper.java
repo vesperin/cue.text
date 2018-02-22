@@ -5,7 +5,7 @@ import java.util.Collection;
 /**
  * @author Huascar Sanchez
  */
-public interface Words <T> {
+public interface WordKeeper<T> {
   /**
    * Adds a new thing to a list of things
    *
