@@ -3,8 +3,6 @@ package com.vesperin.text;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.io.Files;
-import com.vesperin.base.Source;
 import com.vesperin.text.Grouping.Groups;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
@@ -15,23 +13,13 @@ import com.vesperin.text.utils.Prints;
 import com.vesperin.text.utils.Samples;
 import com.vesperin.text.utils.Strings;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.vesperin.text.Query.Result.items;
 import static com.vesperin.text.Query.documents;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
-import static java.util.stream.Collectors.toSet;
+import static java.util.stream.Collectors.*;
 
 /**
  * @author Huascar Sanchez
@@ -40,64 +28,6 @@ public class Introspector {
   private static final ExecutionMonitor MONITOR = BasicExecutionMonitor.get();
 
   private Introspector(){}
-
-//  public static void main(String[] args) {
-//    final AtomicReference<Source> caught = new AtomicReference<>();
-//
-//    final JavaParser PARSER = new EclipseJavaParser();
-//
-//    final Corpus<Source> corpusObject = Corpus.ofSources();
-//    final Path start = Paths.get("/Users/hsanchez/Downloads/bigclonebench/dataset/default/");
-//
-//    corpusObject.addAll(Introspector.from(Ios.collectFiles(start, "java", "package-info")));
-//
-//    final List<Context> contexts = new ArrayList<>();
-//
-//    for(Source each : corpusObject){
-//      caught.set(each);
-//      try {
-//        final Context context = PARSER.parseJava(each);
-//        contexts.add(context);
-//      } catch (Throwable e){
-//        System.err.println("File name: " + caught.get().getName());
-//        System.err.println((String.format("File %s failed. See: ", caught.get().getName())) + e.getMessage());
-//        System.err.println(caught.get().getContent());
-//        System.err.println("---------------------------------------------------");
-//        caught.set(null);
-//      }
-//
-//    }
-//
-//    System.out.println(contexts.size() + " parsed.");
-//
-//  }
-
-  /**
-   * Converts a list of files into a list of source objects.
-   *
-   * @param files the files to be converted
-   * @return the list source objects.
-   */
-  public static List<Source> from(List<File> files) {
-    final Predicate<Source> noPackageInfoFiles = s -> !"package-info".equals(s.getName());
-
-    return files.stream()
-      .map(Introspector::from)
-      .filter(noPackageInfoFiles)
-      .collect(Collectors.toList());
-  }
-
-  public static Source from(File file) {
-    try {
-      final String name     = Files.getNameWithoutExtension(file.getName());
-      final String content  = Files.readLines(file, Charset.defaultCharset()).stream()
-        .collect(Collectors.joining("\n"));
-
-      return Source.from(name, content);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
 
   /**
    * Generates a map consisting of both frequent and typical words.
@@ -158,14 +88,6 @@ public class Introspector {
   }
 
 
-  /**
-   * TODO
-   * @param fromTopKWords
-   * @param corpus
-   * @param tokenizer
-   * @param <T>
-   * @return
-   */
   public static <T> Groups partitionCorpus(int fromTopKWords, Corpus<T> corpus, WordsTokenizer tokenizer){
     final List<Word> frequentWords = Introspector.frequentWords(corpus, tokenizer);
     final Map<List<Word>, List<Word>> mapping = buildWordsMap(fromTopKWords, frequentWords);

@@ -72,7 +72,10 @@ class WordsInClassNameTokenizer extends WordsInASTNodeTokenizer {
   @Override public boolean visit(TypeDeclaration typeDeclaration) {
     if (!typeDeclaration.isPackageMemberTypeDeclaration()) {
       final ITypeBinding binding = typeDeclaration.resolveBinding();
-      System.out.println("I: {\"" + binding.getName() + "\": \"" + typeDeclaration.resolveBinding().getQualifiedName() + "\"},");
+      System.out.println(
+              "I: {\"" + binding.getName() + "\": \""
+                      + typeDeclaration.resolveBinding().getQualifiedName() + "\"},"
+      );
       return false;
     }
 

@@ -4,22 +4,14 @@ import Jama.Matrix;
 import Jama.SingularValueDecomposition;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.vesperin.base.locations.Location;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
 import com.vesperin.text.tokenizers.WordsTokenizer;
 import com.vesperin.text.utils.Jamas;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.stream.Collectors;
 
 /**
  * @author Huascar Sanchez
@@ -82,8 +74,7 @@ public class Index {
   public void index(List<Word> words/*unique*/){
 
     final Map<String, List<Word>> map = new HashMap<>();
-    final Set<Word> wordsSet = new LinkedHashSet<>();
-    wordsSet.addAll(words);
+    final Set<Word> wordsSet = new LinkedHashSet<>(words);
 
     for(Word each : words){
       if(Objects.isNull(each) || Objects.isNull(each.container())){
@@ -142,8 +133,7 @@ public class Index {
   void createWordDocMatrix(){
     final double[][] data = new double[wordCount][docCount];
 
-    final List<String> docList = docSet.stream()
-      .collect(Collectors.toList());
+    final List<String> docList = new ArrayList<>(docSet);
 
     for (int i = 0; i < wordCount; i++) {
       for (int j = 0; j < docCount; j++) {

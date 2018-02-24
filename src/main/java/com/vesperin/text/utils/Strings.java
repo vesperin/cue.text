@@ -52,7 +52,7 @@ public class Strings {
 
   public static Set<String> intersect(List<String> a, List<String> b){
     final Predicate<String> skipNumbers     = w -> !isNumber(w);
-    final Predicate<String> skipSingleChar  = w -> w.length() > 1 && !w.isEmpty();
+    final Predicate<String> skipSingleChar  = w -> w.length() > 1;
     final Set<String> aa = a.stream().filter(skipNumbers.or(skipSingleChar)).collect(Collectors.toSet());
     final Set<String> bb = b.stream().filter(skipNumbers.or(skipSingleChar)).collect(Collectors.toSet());
 

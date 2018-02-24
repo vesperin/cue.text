@@ -1,5 +1,6 @@
 package com.vesperin.text.utils;
 
+import com.vesperin.text.nouns.Noun;
 import com.vesperin.text.spelling.Dictionary;
 
 import java.util.ArrayList;

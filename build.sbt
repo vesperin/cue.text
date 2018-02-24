@@ -20,7 +20,7 @@ publishMavenStyle := true
 // Do not append Scala versions to the generated artifacts
 crossPaths := false
 
-scalaVersion := "2.11.7"
+scalaVersion := "2.12.4"
 
 // This forbids including Scala related libraries into the dependency
 autoScalaLibrary := false
@@ -42,6 +42,7 @@ test in assembly := {}
 libraryDependencies ++= Seq(
    "org.eclipse.jdt" % "org.eclipse.jdt.core" % "3.10.0",
     "com.google.guava" % "guava" % "20.0",
+    "com.google.code.gson" % "gson" % "2.8.2",
     "com.novocode" % "junit-interface" % "0.11" % "test",
     "junit" % "junit" % "4.12",
     "gov.nist.math" % "jama" % "1.0.3"
@@ -53,6 +54,7 @@ assemblyExcludedJars in assembly <<= (fullClasspath in assembly) map { cp =>
     "hamcrest-core-1.3.jar",
     "junit-interface-0.11.jar",
     "guava-20.0.jar",
+    "gson-2.8.2.jar",
     "org.eclipse.core.commands-3.6.0.jar",
     "org.eclipse.core.contenttype-3.4.100.jar",
     "org.eclipse.core.expressions-3.4.300.jar",
