@@ -7,11 +7,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.NoSuchElementException;
-import java.util.Objects;
+import java.util.*;
 
 import static com.vesperin.text.utils.Strings.isNumber;
 import static com.vesperin.text.utils.Strings.onlyConsonantsOrVowels;
@@ -73,18 +69,18 @@ public enum Dictionary implements WordKeeper<String> {
   }
 
   private static Path loadBuiltInDictionary(){
-    try {
-      final Path systemDict = Paths.get("/usr/share/dict/words");
-      if(Ios.exists(systemDict)){
-        return systemDict;
-      }
-    } catch (Exception ignored){
-      System.err.println("Unable to access the system's dictionary.");
-    }
-
     final Path backup = Ios.loadFile("dict.txt");
     if(Ios.exists(backup)){
       return backup;
+    } else {
+      try {
+        final Path systemDict = Paths.get("/usr/share/dict/words");
+        if(Ios.exists(systemDict)){
+          return systemDict;
+        }
+      } catch (Exception ignored){
+        System.err.println("Unable to access the system's dictionary.");
+      }
     }
 
     throw new NoSuchElementException("Unable to find dictionary");

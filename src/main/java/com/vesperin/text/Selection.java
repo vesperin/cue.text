@@ -19,11 +19,7 @@ import com.vesperin.text.utils.Strings;
 import org.eclipse.jdt.core.dom.ASTNode;
 
 import java.util.*;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -172,7 +168,7 @@ public interface Selection <T> extends Executable {
     final List<Word> firstPass  = from(corpus, tokenizer);
     final List<Word> secondPass = cleans(tokenizer.stopWords(), firstPass);
 
-    final List<Word> words = from(secondPass, new WordByFrequency(k));
+    final List<Word> words = from(secondPass, new WordByFrequency(k, tokenizer.stopWords()));
     if(BasicExecutionMonitor.get().isActive()){
       BasicExecutionMonitor.get().info(
         String.format("Selection#topKWords: top %d words were extracted using using term frequency as a score.", words.size())
@@ -217,6 +213,7 @@ public interface Selection <T> extends Executable {
   static List<Word> cleans(Set<StopWords> stopWords, List<Word> relevant){
     return relevant.stream()
       .filter(w -> !Objects.isNull(w) && !StopWords.isStopWord(stopWords, w.element().toLowerCase(Locale.ENGLISH)))
+      .filter(w -> w.element().length() > 2)
       .map(w -> Noun.get().isPlural(w.element()) ? WordImpl.from(Noun.get().singularOf(w.element()), w.count(), w.container()) : w )
       .collect(Collectors.toList());
   }
@@ -615,14 +612,6 @@ public interface Selection <T> extends Executable {
 
     private static final Noun NOUN = Noun.newNoun();
 
-
-    /**
-     * Counts words in some text.
-     */
-    WordCounter(List<Word> items){
-      this(items, EnumSet.of(StopWords.ENGLISH, StopWords.JAVA));
-    }
-
     /**
      * Counts words in some list, paying attention to a set of stop words..
      * @param items items to be counted
@@ -745,13 +734,15 @@ public interface Selection <T> extends Executable {
 
   class WordByFrequency implements Filter<Word> {
     private final int k;
+    private final Set<StopWords> stopWords;
 
-    WordByFrequency(int k){
+    WordByFrequency(int k, Set<StopWords> stopWords){
       this.k      = k;
+      this.stopWords = stopWords;
     }
 
     @Override public List<Word> apply(List<Word> words) {
-      final WordCounter counter = new WordCounter(words);
+      final WordCounter counter = new WordCounter(words, stopWords);
       return counter.top(k);
     }
   }
