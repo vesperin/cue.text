@@ -1,14 +1,17 @@
 package com.vesperin.text.spelling;
 
+import com.vesperin.text.nouns.Noun;
+import com.vesperin.text.spi.BasicExecutionMonitor;
+import com.vesperin.text.utils.Ios;
 import com.vesperin.text.utils.Similarity;
+import com.vesperin.text.utils.Strings;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -19,36 +22,40 @@ import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static com.google.common.primitives.Floats.compare;
-import static com.vesperin.text.spelling.Corrector.endsWithNumbers;
-import static com.vesperin.text.spelling.Corrector.isNumber;
-import static com.vesperin.text.spelling.Corrector.startsWithNumbers;
-import static com.vesperin.text.spelling.Corrector.trimLeft;
-import static com.vesperin.text.spelling.Corrector.trimRight;
+import static com.vesperin.text.utils.Strings.isNumber;
+import static com.vesperin.text.utils.Strings.onlyConsonantsOrVowels;
 
 /**
  * @author Huascar Sanchez
  */
-public enum WordCorrector implements Corrector {
-  INSTANCE(loadFile());
+public enum SpellCorrector implements Corrector {
+  INSTANCE(Ios.loadFile("big.txt"));
 
   private static final String CAMEL_CASE = "((?<!(^|[A-Z]))(?=[A-Z])|(?<!^)(?=[A-Z][a-z]))|_";
 
-  private SortedMap<String,Integer> dictionary;
+  private SortedMap<String,Integer> wordToFrequency;
 
-  WordCorrector(Path index){
-    this.dictionary = new TreeMap<>();
+  SpellCorrector(Path index){
+    this.wordToFrequency = new TreeMap<>();
 
-    try {
-      populateDictionary(index, this.dictionary);
-    } catch (IOException e) {
-      throw new IllegalStateException("Unable to populate dictionary!");
+    if(!Objects.isNull(index) && Files.exists(index)) {
+      try {
+        populateDictionary(index, this.wordToFrequency);
+        BasicExecutionMonitor.get().info("big.txt has been loaded");
+      } catch (IOException e) {
+        BasicExecutionMonitor.get().error("big.txt has not been loaded", e);
+        throw new IllegalStateException("Unable to populate dictionary. Cannot find big.txt file!");
+      }
+    } else {
+      populateDictionary(TextFailover.DEFAULT_TEXT, this.wordToFrequency);
+      BasicExecutionMonitor.get().info("big.txt could not been found; failover text has been used instead.");
     }
+
   }
 
 
-  public static WordCorrector getInstance(){
-    return WordCorrector.INSTANCE;
+  public static SpellCorrector getInstance(){
+    return SpellCorrector.INSTANCE;
   }
 
   /**
@@ -58,16 +65,14 @@ public enum WordCorrector implements Corrector {
    * @return a suggested correction.
    */
   public static String suggestCorrection(String word){
-    return WordCorrector.getInstance().correct(word);
+    return suggestCorrection(word, false);
   }
 
-  public static boolean onlyConsonantsOrVowels(String word){
-    return Corrector.onlyConsonants(word);
+  public static String suggestCorrection(String word, boolean tryCorrect){
+    if (tryCorrect) return SpellCorrector.getInstance().correct(word);
+    return word;
   }
 
-  public static float similarity(String word, String suggestion){
-    return Similarity.similarityScore(word, suggestion);
-  }
 
   @Override public String correct(String word, float accuracy) {
 
@@ -81,33 +86,31 @@ public enum WordCorrector implements Corrector {
         );
 
         // Use prefixes (like a Trie)
-        Optional<String> e3 = max(getPrefixedBy(word, dictionary).stream());
+        Optional<String> e3 = max(getPrefixedBy(word, wordToFrequency).stream());
         if(!e3.isPresent()){
-          e3 = max(getPrefixedBy(word.substring(0, word.length() - 1), dictionary).stream());
+          e3 = max(getPrefixedBy(word.substring(0, word.length() - 1), wordToFrequency).stream());
         }
 
         final Set<String> winners = new HashSet<>();
-        if(e1.isPresent()) winners.add(e1.get());
-        if(e2.isPresent()) winners.add(e2.get());
-        if(e3.isPresent()) winners.add(e3.get());
+        e1.ifPresent(winners::add);
+        e2.ifPresent(winners::add);
+        e3.ifPresent(winners::add);
 
         final Optional<String> winner = winners.stream().max(
-          (a, b) -> compare(similarity(word, a), similarity(word, b))
+          Comparator.comparingDouble(a -> Similarity.jaccard(word, a))
         );
 
-        if(winner.isPresent()) return winner.get();
+        return winner.orElse(word);
 
-        return word;
       } else {
-        Optional<String> e0 = max(getPrefixedBy(word, dictionary).stream());
+        Optional<String> e0 = max(getPrefixedBy(word, wordToFrequency).stream());
 
         if(!e0.isPresent()){
-          e0 = max(getPrefixedBy(word.substring(0, word.length() - 1), dictionary).stream());
+          e0 = max(getPrefixedBy(word.substring(0, word.length() - 1), wordToFrequency).stream());
         }
 
-        if(e0.isPresent()) return e0.get();
+        return e0.orElse(word);
 
-        return word;
       }
     }
   }
@@ -118,11 +121,11 @@ public enum WordCorrector implements Corrector {
   }
 
   public static boolean containsWord(String word){
-    return WordCorrector.getInstance().contains(word);
+    return SpellCorrector.getInstance().contains(word);
   }
 
   private boolean contains(String word){
-    return dictionary.containsKey(word);
+    return wordToFrequency.containsKey(word);
   }
 
   private static <V> SortedMap<String, V> filterPrefix(SortedMap<String,V> baseMap, String prefix) {
@@ -138,17 +141,9 @@ public enum WordCorrector implements Corrector {
     return filterPrefix(baseMap, word).keySet();
   }
 
-  private static Path loadFile(){
-    try {
-      return Paths.get((Corrector.class.getResource("/big.txt").toURI()));
-    } catch (Exception e){
-      return null;
-    }
-  }
-
 
   private Optional<String> max(Stream<String> stream){
-    return stream.max((a, b) -> dictionary.get(a) - dictionary.get(b));
+    return stream.max(Comparator.comparingInt(a -> wordToFrequency.get(a)));
   }
 
   private Stream<String> mutate(final String word){
@@ -180,7 +175,14 @@ public enum WordCorrector implements Corrector {
     Objects.requireNonNull(dictionaryFile);
 
     final List<String> lines = Files.readAllLines(dictionaryFile);
+    processLines(lines, dict);
+  }
 
+  private static void populateDictionary(List<String> lines, SortedMap<String, Integer> dict){
+    processLines(lines, dict);
+  }
+
+  private static void processLines(List<String> lines, SortedMap<String, Integer> dict) {
     Pattern p = Pattern.compile("\\w+");
     for(String line : lines){
       final Matcher m = p.matcher(line);
@@ -190,17 +192,15 @@ public enum WordCorrector implements Corrector {
         final String[] words = m.group().split(CAMEL_CASE);
 
         for(String each : words){
+
           if(each.length() <= 2)            continue;
           if(onlyConsonantsOrVowels(each))  continue;
           if(isNumber(each))                continue;
 
-          String updatedEach;
-          if(startsWithNumbers(each) || endsWithNumbers(each)) {
-            updatedEach = trimRight(trimLeft(each))
-              .toLowerCase(Locale.ENGLISH);
-          } else {
-            updatedEach = each.toLowerCase(Locale.ENGLISH);
-          }
+          String updatedEach = Strings.trimSideNumbers(each, true);
+          updatedEach        = Noun.get().isPlural(updatedEach)
+            ? Noun.get().singularOf(updatedEach)
+            : updatedEach;
 
           dict.put(
             updatedEach,
@@ -212,4 +212,6 @@ public enum WordCorrector implements Corrector {
       }
     }
   }
+
+
 }

@@ -14,6 +14,7 @@ final class Grammar {
   private final LinkedList<Rule>    singular 		= new LinkedList<>();
   private final LinkedList<Rule> 	  plural			= new LinkedList<>();
   private final LinkedList<String>  uncountable = new LinkedList<>();
+  private final LinkedList<String>  unchanged   = new LinkedList<>();
 
   Grammar(){
 
@@ -97,6 +98,8 @@ final class Grammar {
       "sugar", "sunshine", "tea", "tennis", "thunder",
       "toothpaste", "traffic", "trousers", "vinegar",
       "water", "weather", "wood", "wool", "work");
+
+    unchanged("criteria", "media", "data", "atlas", "this");
   }
 
   private static void ensureValidExpression(String exp){
@@ -137,14 +140,30 @@ final class Grammar {
     return uncountable.contains(trimmedLower);
   }
 
+  boolean isUnchanged(String word){
+    if (word == null) return false;
+    final String trimmedLower = word.trim().toLowerCase();
+    return unchanged.contains(trimmedLower);
+  }
+
   private void uncountable(String... words){
     if(words == null || words.length == 0) return;
 
-    final List<String> filtered = Arrays.asList(words).stream()
+    final List<String> filtered = Arrays.stream(words)
       .filter(w -> null != w)
       .collect(toList());
 
     uncountable.addAll(filtered);
+  }
+
+  private void unchanged(String... words){
+    if(words == null || words.length == 0) return;
+
+    final List<String> filtered = Arrays.stream(words)
+      .filter(w -> null != w)
+      .collect(toList());
+
+    unchanged.addAll(filtered);
   }
 
   void clear(){

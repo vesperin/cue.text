@@ -1,11 +1,14 @@
 package com.vesperin.text.spelling;
 
 import com.google.common.io.CharStreams;
+import com.vesperin.text.utils.Strings;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -17,7 +20,7 @@ import java.util.Set;
 /**
  * @author Huascar Sanchez
  */
-public enum StopWords {
+public enum StopWords implements WordKeeper<String> {
   ENGLISH(), JAVA(), GENERAL(), CUSTOM();
 
 
@@ -36,38 +39,51 @@ public enum StopWords {
   /**
    * Construct the StopWords enum
    *
-   * @param stripApostrophes s
+   * @param stripApostrophes strip apostrophes
    */
   StopWords(boolean stripApostrophes) {
     this.stripApostrophes = stripApostrophes;
     this.stopWords = new HashSet<>();
 
-    loadSupportedLanguages();
+    final String wordListResource = name().toLowerCase(Locale.ENGLISH);
+    if (!CUSTOM_WORD.equals(wordListResource)) {
+      readFromFile(wordListResource);
+    }
+
   }
 
-  /**
-   * Adds a new word to the stop-words list.
-   *
-   * @param word new word to add
-   */
-  public void add(String word){
+  @Override public void add(String word){
     final String nonNullWord = Objects.requireNonNull(word);
     stopWords.add(nonNullWord.toLowerCase(Locale.ENGLISH));
   }
 
-  /**
-   * Adds a list of words to the stop-words object.
-   *
-   * @param words list of words to add
-   */
-  public void addAll(List<String> words){
+  @Override public void addAll(Collection<String> words){
     final Set<String> uniqueWords = new HashSet<>();
     uniqueWords.addAll(words);
 
     for(String each : uniqueWords){
       if(Objects.isNull(each) || each.isEmpty()) continue;
-      add(each);
+      final String lowercase = each.toLowerCase(Locale.ENGLISH);
+      add(lowercase);
     }
+  }
+
+  /**
+   * @return a constructed set of stop word objects
+   */
+  public static Set<StopWords> of(StopWords... stopWords){
+
+    if(Objects.isNull(stopWords) || stopWords.length == 0) return Collections.emptySet();
+
+    Set<StopWords> result = null;
+    for (StopWords each : stopWords){
+      if(Objects.isNull(result)) { result = EnumSet.of(each); } else {
+        result.add(each);
+      }
+    }
+
+    return result;
+
   }
 
   /**
@@ -76,6 +92,22 @@ public enum StopWords {
    */
   public static Set<StopWords> all(){
     return EnumSet.of(StopWords.ENGLISH, StopWords.JAVA, StopWords.GENERAL);
+
+  }
+
+  /**
+   * Refreshes all the relevant stop words with a fresh list of words.
+   * @param english english list of words
+   * @param java java list of words
+   * @param general general programming list of words
+   * @return a new set of refreshed stop words.
+   */
+  public static Set<StopWords> update(List<String> english, List<String> java, List<String> general){
+    StopWords.ENGLISH.addAll(english);
+    StopWords.JAVA.addAll(java);
+    StopWords.GENERAL.addAll(general);
+
+    return all();
   }
 
   /**
@@ -88,7 +120,7 @@ public enum StopWords {
   public static boolean isStopWord(Set<StopWords> corpus, String... word){
     for(String w : word){
       for(StopWords s : corpus){
-        if(s.isStopWord(w)) return true;
+        if(s.isStopWord(w) || Strings.isNumber(w)) return true;
       }
     }
 
@@ -110,35 +142,36 @@ public enum StopWords {
     );
   }
 
-  private void loadSupportedLanguages() {
-    final String wordListResource = name().toLowerCase(Locale.ENGLISH);
-    if (!CUSTOM_WORD.equals(wordListResource)) {
+  /**
+   * Loads a file (identified by its name) containing words of interest.
+   *
+   * @param name file name (lowercase)
+   */
+  private void readFromFile(String name) {
+    final Class<?> bagClass = getClass();
 
-      final Class<?> stopWordsClass = getClass();
+    try (final InputStream in = bagClass.getResourceAsStream("/" + name);
+         final InputStreamReader inr = new InputStreamReader(in, Charset.forName("UTF-8"))) {
 
-      try (final InputStream in = stopWordsClass.getResourceAsStream("/" + wordListResource);
-           final InputStreamReader inr = new InputStreamReader(in, Charset.forName("UTF-8"))) {
+      final List<String> lines = CharStreams.readLines(inr);
+      final Iterator<String> iterator = lines.iterator();
+      String line;
 
-        final List<String> lines = CharStreams.readLines(inr);
-        final Iterator<String> iterator = lines.iterator();
-        String line;
+      while (iterator.hasNext()) {
+        line = iterator.next();
+        line = line.replaceAll("\\|.*", "").trim();
 
-        while (iterator.hasNext()) {
-          line = iterator.next();
-          line = line.replaceAll("\\|.*", "").trim();
-
-          if (line.length() == 0) {
-            continue;
-          }
-
-          for (final String w : line.split("\\s+")) {
-            add(w);
-          }
+        if (line.length() == 0) {
+          continue;
         }
 
-      } catch (IOException e) {
-        throw new RuntimeException(e);
+        for (final String w : line.split("\\s+")) {
+          add(w);
+        }
       }
+
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 }

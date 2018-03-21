@@ -2,21 +2,16 @@ package com.vesperin.text;
 
 import Jama.Matrix;
 import Jama.SingularValueDecomposition;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
+import com.vesperin.text.tokenizers.WordsTokenizer;
 import com.vesperin.text.utils.Jamas;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.stream.Collectors;
 
 /**
  * @author Huascar Sanchez
@@ -47,40 +42,44 @@ public class Index {
 
   /**
    * It creates an index based on a flatten word list
-   * (Set this ({@link Selection#flattenWordList(Set, Set, Set)} method first).
+   * (Set this ({@link Selection#deduplicateWordList(Corpus, WordsTokenizer)} method first).
    *
    * @param words flatten Word List.
    * @return a new Index object.
    */
-  static Index createIndex(List<Word> words){
+  public static Index createIndex(List<Word> words){
     final Index index = new Index();
     index.index(words);
+    index.createWordDocMatrix();
+    index.createLsiMatrix();
     return index;
   }
 
-  Set<Document> docSet(){
+  public Set<Document> docSet(){
     return indexMap.keySet();
   }
 
-  List<Word> wordList(){
+  public List<Word> wordList(){
     return wordList;
   }
 
-  Matrix wordDocFrequency(){
+  public Matrix wordDocFrequency(){
     return wordFrequencyMatrix;
   }
 
-  Matrix lsiMatrix(){
+  public Matrix lsiMatrix(){
     return lsiMatrix;
   }
 
-  void index(List<Word> words/*unique*/){
+  public void index(List<Word> words/*unique*/){
 
     final Map<String, List<Word>> map = new HashMap<>();
-    final Set<Word> wordsSet = new LinkedHashSet<>();
-    wordsSet.addAll(words);
+    final Set<Word> wordsSet = new LinkedHashSet<>(words);
 
     for(Word each : words){
+      if(Objects.isNull(each) || Objects.isNull(each.container())){
+        System.out.println();
+      }
       final Set<String> docs = each.container();
 
       for(String doc : docs){
@@ -94,6 +93,27 @@ public class Index {
 
     int idx = 0; for(String each : map.keySet()){
       final Document doc = new Selection.DocumentImpl(idx, each);
+
+      // here is where the locations can messed up
+      // fixme: make sure numbers won't get lost or swapped..
+      final List<Word> allWords = map.get(each);
+
+      for(Word eachWord : allWords){
+        if((doc.getEnd() == 0 && doc.getStart() == 0)) {
+          for(String container : eachWord.locations().keySet()){
+            if(doc.toString().equals(container)){
+
+              final List<Integer> eachLocation = eachWord.locations().get(container);
+              doc.locate(eachLocation.get(0), eachLocation.get(1));
+            }
+
+
+          }
+        }
+
+
+      }
+
       indexMap.put(doc, map.get(each));
       docMap.put(each, doc);
       docSet.add(each);
@@ -103,16 +123,17 @@ public class Index {
     docCount  = indexMap.keySet().size();
     wordCount = wordsSet.size();
     wordList.addAll(wordsSet);
+  }
 
-    createWordDocMatrix();
-    createLsiMatrix();
+  public List<Word> wordList(Document document){
+    if(!indexMap.containsKey(document)) return ImmutableList.of();
+    return indexMap.get(document);
   }
 
   void createWordDocMatrix(){
     final double[][] data = new double[wordCount][docCount];
 
-    final List<String> docList = docSet.stream()
-      .collect(Collectors.toList());
+    final List<String> docList = new ArrayList<>(docSet);
 
     for (int i = 0; i < wordCount; i++) {
       for (int j = 0; j < docCount; j++) {

@@ -17,12 +17,20 @@ public class Noun {
     return new Noun();
   }
 
+  public static Noun get() {
+    return Installer.NOUN;
+  }
 
-  boolean isSingular(String word){
+  public static String toSingular(String word){
+    final Noun instance = Noun.get();
+    return instance.isPlural(word) ? instance.singularOf(word) : word;
+  }
+
+  public boolean isSingular(String word){
     return Objects.equals(singularOf(word), word);
   }
 
-  boolean isPlural(String word){
+  public boolean isPlural(String word){
     return Objects.equals(pluralOf(word), word);
   }
 
@@ -34,6 +42,7 @@ public class Noun {
 
   public String singularOf(String word){
     if(grammar.isUncountable(word)) return word;
+    if(grammar.isUnchanged(word)) return word;
     return applyRule(grammar.singularList(), word);
   }
 
@@ -48,6 +57,11 @@ public class Noun {
 
   void clearGrammar(){
     grammar.clear();
+  }
+
+
+  private static class Installer {
+    static final Noun NOUN = Noun.newNoun();
   }
 
 }

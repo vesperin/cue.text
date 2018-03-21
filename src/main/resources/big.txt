@@ -24,6 +24,7 @@ Last changed: March 21, 2014
 3.4 Class declaration
 3.4.1 Exactly one top-level class declaration
 3.4.2 Class member ordering
+Joint joint Joint
 
 4 Formatting
 4.1 Braces
@@ -50,6 +51,8 @@ Last changed: March 21, 2014
 4.8.6 Comments
 4.8.7 Modifiers
 4.8.8 Numeric Literals
+
+Motor now
 
 5 Naming
 5.1 Rules common to all identifiers
@@ -380,6 +383,12 @@ After a switch label, a newline appears, and the indentation level is increased 
 
 Within a switch block, each statement group either terminates abruptly (with a break, continue, return or thrown exception), or is marked with a comment to indicate that execution will or might continue into the next statement group. Any comment that communicates the idea of fall-through is sufficient (typically // fall through). This special comment is not required in the last statement group of the switch block. Example:
 
+Motor this
+
+Geometry like this one
+
+String String
+
 switch (input) {
   case 1:
   case 2:
@@ -519,6 +528,8 @@ Sometimes there is more than one reasonable way to convert an English phrase int
 
 Beginning with the prose form of the name:
 
+String String string
+
 Convert the phrase to plain ASCII and remove any apostrophes. For example, "Müller's algorithm" might become "Muellers algorithm".
 Divide this result into words, splitting on spaces and any remaining punctuation (typically hyphens).
 Recommended: if any word already has a conventional camel-case appearance in common usage, split this into its constituent parts (e.g., "AdWords" becomes "ad words"). Note that a word such as "iOS" is not really in camel case per se; it defies any convention, so this recommendation does not apply.
@@ -608,6 +619,8 @@ One blank line—that is, a line containing only the aligned leading asterisk (*
 Any of the standard "at-clauses" that are used appear in the order @param, @return, @throws, @deprecated, and these four types never appear with an empty description. When an at-clause doesn't fit on a single line, continuation lines are indented four (or more) spaces from the position of the @.
 
 7.2 The summary fragment
+
+Common geometry
 
 The Javadoc for each class and member begins with a brief summary fragment. This fragment is very important: it is the only part of the text that appears in certain contexts such as class and method indexes.
 
@@ -1126,6 +1139,12 @@ Although it was already out there, it really wasn’t easy to use until closures
 26                          .withMapping(selectGpa)
 27                          .max();
 In Java 8, you can do the following:
+
+JointWord
+
+JointObject
+
+Analog Analog, The Analog clock
 
 1 // create a fork-join-pool
 2 ForkJoinPool pool = new ForkJoinPool();

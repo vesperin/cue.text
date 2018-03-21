@@ -4,11 +4,13 @@ import Jama.Matrix;
 import com.google.common.primitives.Doubles;
 import com.vesperin.text.Selection.Document;
 import com.vesperin.text.Selection.Word;
+import com.vesperin.text.spi.BasicExecutionMonitor;
 import com.vesperin.text.utils.Jamas;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -22,76 +24,174 @@ import java.util.stream.Collectors;
  */
 public interface Query {
   /**
-   * Search for interesting methods in some index using a list of keywords.
+   * Finds interesting documents in some index using a list of keywords.
    *
    * @param words query of keywords
    * @param index existing index
    * @return a new query result object.
    */
-  static Result methods(List<Word> words, Index index){
-    return createQuery().methodSearch(words, index);
+  static Result documents(List<Word> words, Index index){
+    Objects.requireNonNull(index);
+    Objects.requireNonNull(words);
+
+    final Result result = createQuery().documentSearch(words, index);
+
+    if(BasicExecutionMonitor.get().isActive()){
+
+      BasicExecutionMonitor.get().info(
+        String.format(
+          "Query#documents: %d documents sharing these %s words.",
+          result.documents.size(),
+          words
+        )
+      );
+
+    }
+
+    return result;
   }
 
   /**
-   * Search for interesting fully.qualified.ClassName#methodName entries in
-   * some index using a list of Documents.
+   * Finds interesting words in a list of fully.qualified.ClassName[#methodName]
+   * entries (a.k.a. documents).
    *
    * @param docs query of documents
    * @param index existing index
    * @return a new query result object.
    */
-  static Result types(List<Document> docs, Index index){
-    return createQuery().typeSearch(docs, index);
+  static Result words(List<Document> docs, Index index){
+    Objects.requireNonNull(index);
+    Objects.requireNonNull(docs);
+
+    final Result result = createQuery().wordSearch(docs, index);
+
+    if(BasicExecutionMonitor.get().isActive()){
+
+      BasicExecutionMonitor.get().info(
+        String.format(
+          "Query#words: %d words found in these %s documents.",
+          result.documents.size(),
+          docs
+        )
+      );
+
+    }
+
+
+    return result;
+  }
+
+  /**
+   * Finds interesting fully.qualified.ClassName[#methodName] entries (Documents) in
+   * some index using a list of Words.
+   *
+   * @param words query of words
+   * @param population words population
+   * @return a new query result object.
+   */
+  static Result documents(List<Word> words, List<Word> population){
+    Objects.requireNonNull(words);
+    Objects.requireNonNull(population);
+
+    final Index index = Index.createIndex(population);
+
+    return Query.documents(words, index);
   }
 
   /**
    * @return a new query object.
    */
   static Query createQuery(){
-    return new MethodQuery();
+    return new GeneralQuery();
   }
 
   /**
-   * Searches the index for interesting methods.
+   * Searches the index for interesting documents.
    *
    * @param words list of words
    * @param index the corpus in a Matrix form.
    * @return a list of matching methods.
    */
-  default Result methodSearch(List<Word> words, Index index){
+  default Result documentSearch(List<Word> words, Index index){
 
     final List<Word> keywords       = Objects.requireNonNull(words);
     final Index      validIndex     = Objects.requireNonNull(index);
     final Matrix     queryMatrix    = createQueryVector(keywords, validIndex.wordList());
+    final Matrix     tfidfMatrix    = Jamas.tfidfMatrix(index.wordDocFrequency());
 
-    return methodSearch(queryMatrix, index.docSet(), index.lsiMatrix());
+    if(BasicExecutionMonitor.get().isActive()){
+
+      BasicExecutionMonitor.get().info(
+        String.format("Query#documentSearch: Printing query vector for %s.", keywords)
+      );
+
+      Jamas.printJamaMatrix(
+        "Query vector (words)",
+        queryMatrix,
+        keywords
+      );
+
+      System.out.println();
+
+      Jamas.printJamaMatrix(
+        "Tf-idf matrix (words)",
+        tfidfMatrix,
+        validIndex.wordList()
+      );
+
+    }
+
+
+    return documentSearch(queryMatrix, index.docSet(), tfidfMatrix);
   }
 
   /**
-   * Searches the index for interesting types.
+   * Searches the index for interesting words using a list of documents.
    *
    * @param documents list of documents
    * @param index the corpus in a Matrix form.
-   * @return a list of matching types.
+   * @return a list of matching words.
    */
-  default Result typeSearch(List<Document> documents, Index index){
+  default Result wordSearch(List<Document> documents, Index index){
 
     final List<Document>  keydocs        = Objects.requireNonNull(documents);
     final Index           validIndex     = Objects.requireNonNull(index);
     final List<Document>  docList        = validIndex.docSet().stream().collect(Collectors.toList());
     final Matrix          queryMatrix    = createQueryVector(keydocs, docList);
+    final Matrix          tfidfMatrix    = Jamas.tfidfMatrix(index.wordDocFrequency().transpose());
 
-    return typeSearch(queryMatrix, index.wordList(), index.lsiMatrix().transpose());
+    if(BasicExecutionMonitor.get().isActive()){
+
+      BasicExecutionMonitor.get().info(
+        String.format("Query#wordSearch: Printing query vector for %s.", keydocs)
+      );
+
+      Jamas.printJamaMatrix(
+        "Query vector (words)",
+        queryMatrix,
+        keydocs
+      );
+
+      System.out.println();
+
+      Jamas.printJamaMatrix(
+        "Tf-idf matrix (words)",
+        tfidfMatrix.transpose(),
+        validIndex.wordList()
+      );
+    }
+
+    return wordSearch(queryMatrix, index.wordList(), tfidfMatrix);
   }
 
   /**
-   * Searches for a list of methods that match a given query.
+   * Searches for a list of documents that match a given query.
    *
    * @param query list of words as a query.
    * @param index the indexed corpus (as a matrix).
    * @return a list of matching methods.
    */
-  default Result methodSearch(Matrix query, Set<Document> docSet, Matrix index) {
+  default Result documentSearch(Matrix query, Set<Document> docSet, Matrix index) {
     final Map<Integer, Double> scores = new HashMap<>();
 
     for(Document each : docSet){
@@ -117,14 +217,14 @@ public interface Query {
   }
 
   /**
-   * Searches for a list of methods that match a given query.
+   * Searches for a list of words that match a given query.
    *
    * @param query list of words as a query.
    * @param index the indexed corpus (as a matrix).
    * @return a list of matching methods.
    */
-  default Result typeSearch(Matrix query, List<Word> wordList, Matrix index) {
-    final Map<Integer, Double> scores = new HashMap<>();
+  default Result wordSearch(Matrix query, List<Word> wordList, Matrix index) {
+    final Map<Integer, Double> scores = new LinkedHashMap<>();
 
     int idx = 0; for(Word ignored : wordList){
       double score = Jamas.computeSimilarity(query, Jamas.getCol(index, idx));
@@ -143,7 +243,9 @@ public interface Query {
     Collections.reverse(indices);
 
     final List<Word> scoredDocList = indices.stream()
-      .map(docList::get).collect(Collectors.toList());
+      .map(docList::get)
+      .sorted((a, b) -> a.element().compareTo(b.element()))
+      .collect(Collectors.toList());
 
     return Result.downcast(scoredDocList);
   }
@@ -196,7 +298,7 @@ public interface Query {
      * @throws ClassCastException if trying to cast an object to a subclass of which it is
      *  not an instance.
      */
-    static <I> List<I> items(Result result, Class<I> klass){
+    public static <I> List<I> items(Result result, Class<I> klass){
       return result.documents.stream()
         .map(klass::cast).collect(Collectors.toList());
     }
@@ -210,6 +312,6 @@ public interface Query {
     }
   }
 
-  class MethodQuery implements Query {}
+  class GeneralQuery implements Query {}
 
 }

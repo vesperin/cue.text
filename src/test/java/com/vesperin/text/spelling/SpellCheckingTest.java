@@ -5,7 +5,7 @@ import org.junit.Test;
 import java.util.HashSet;
 import java.util.Set;
 
-import static com.vesperin.text.spelling.WordCorrector.suggestCorrection;
+import static com.vesperin.text.spelling.SpellCorrector.suggestCorrection;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -27,8 +27,9 @@ public class SpellCheckingTest {
     words.add("str");
 
     for(String each : words){
-      final String correction = suggestCorrection(each);
-      assertThat(corrections.contains(correction), is(true));
+      final String correction = suggestCorrection(each, true);
+      System.out.println(correction);
+       assertThat(corrections.contains(correction), is(true));
     }
   }
 }

@@ -87,6 +87,44 @@ public class Jamas {
   }
 
 
+  public static <T> void printJamaMatrix(String legend, Matrix matrix, List<T> items){
+    System.out.printf("=== %s ===%n", legend);
+
+    final double[][] m = matrix.getArray();
+
+    for (int i = 0; i < m[0].length; i++) {
+      if(i == 0){
+        System.out.printf("%20s", "D" + i);
+      } else {
+        System.out.printf("%8s", "D" + i);
+      }
+    }
+
+    System.out.println();
+    for (int i = 0; i < m.length; i++) {
+      if(!containsItemAt(items, i)) continue;
+      System.out.printf("%15s", items.get(i));
+      for (int j = 0; j < m[0].length; j++) {
+        double val = m[i][j];
+        val = Double.isNaN(val) ? 0.0D : val;
+        System.out.printf("%8.4f", val);
+      }
+
+      System.out.println();
+    }
+
+    System.out.println();
+    System.out.println();
+
+  }
+
+  private static <T> boolean containsItemAt(List<T> items, int idx){
+    try { items.get(idx); return true; } catch (Exception e) {
+      return false;
+    }
+  }
+
+
   public static void printMatrix(String legend, Matrix matrix, List<String> documentNames, List<Word> words, PrintWriter writer) {
     writer.printf("=== %s ===%n", legend);
     writer.printf("%15s", " ");
@@ -171,9 +209,6 @@ public class Jamas {
     final int k = (int) Math.floor(Math.sqrt(corpus.getColumnDimension()));
     double[][] queryVector = new double[k][1];
 
-
-//    Arrays.fill(queryVector, 0.0D);
-
     // populate query vector with real values
     for(int i = 0; i < query.size(); i++){
       for(int j = 0; j < k; j++){
@@ -226,6 +261,7 @@ public class Jamas {
 
   private static Matrix getSigma(int cols, double[] singularValues){
     Matrix var1 = new Matrix(cols, cols);
+
     double[][] var2 = var1.getArray();
 
     for(int var3 = 0; var3 < cols; ++var3) {
